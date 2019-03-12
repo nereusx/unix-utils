@@ -4,6 +4,7 @@
  * if command = - then read from stdin
  * -e = execute, default dof run in test mode (dryrun)
  * -f = force (no stop on error)
+ * -p = regular files only
  * %f = file
  * %b = basename
  * %d = dirname
