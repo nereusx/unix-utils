@@ -16,24 +16,38 @@ dof \- (do-for) executes commands for each item of a list
 .PP
 Example, convert all mp3s to ogg
 .EX
-	dof *.mp3 do ffmpeg -i %f %b.ogg
+	dof -e *.mp3 do ffmpeg -i %f %b.ogg
 .EE
 .SH OPTIONS
 .TP
-.BR \-e
-execute; dof displays what commands would be run, this option executes them.
-.TP
-.BR \-f
-force non-stop; dof stops on error, this option forces dof to ignore errors.
-.TP
 .BR \-
 read from stdin.
+.TP
+.BR \-e
+execute; \fIdof\fR displays what commands would be run, this option executes them.
+.TP
+.BR \-f
+force non-stop; \fIdof\fR stops on error (exit code != 0), this option forces \fIdof\fR to ignore them.
 .TP
 .BR \-h
 help screen.
 .TP
 .BR \-v
 version and license information.
+.SH VARIABLES
+In the `commands' you can use several program's variables. Variables are recognized by prefix '%'.
+.TP
+.BR %f
+the full string (or filename)
+.TP
+.BR %b
+the basename (no directory, no extention)
+.TP
+.BR %d
+the dirname (only the directory)
+.TP
+.BR %e
+the extention
 \# .SH SEE ALSO
 \# command1(section), command2(section)
 .SH AUTHOR
