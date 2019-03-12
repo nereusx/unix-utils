@@ -1,0 +1,4 @@
+*.o
+*~
+dof/dof
+pathpp/path++
