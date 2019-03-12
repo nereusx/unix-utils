@@ -247,6 +247,7 @@ Options:\n\
 \t-e\texecute; dof displays what commands would be run, this option executes them.\n\
 \t-f\tforce non-stop; dof stops on error, this option forces dof to ignore errors.\n\
 \t-p\tplain files only; directories, devices, etc are ignored.\n\
+\t-d\tdirectories only; plain files, devices, etc are ignored.\n\
 \t-\tread from stdin\n\
 \t-h\tthis screen\n\
 \t-v\tversion and program information\n\
