@@ -315,7 +315,7 @@ int main(int argc, char **argv)
 	while ( cur ) {
 		cmdbuf = dof(cmds, cur->str);
 		if ( (flags & 0x01) == 0 ) // not execute-option
-			fprintf(stdout, "%s:\n\t%s\n", cur->str, cmdbuf);
+			fprintf(stdout, "%s\n", cmdbuf);
 		else {
 			if ( (exit_status = system(cmdbuf)) != 0 ) {
 				if ( (flags & 0x02) == 0 ) { // not force-option
