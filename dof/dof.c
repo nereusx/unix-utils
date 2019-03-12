@@ -1,8 +1,4 @@
 /*
- * Nicholas Christopoulos (nereus@freemail.gr)
- *
- * this software is released under GPLv3 or newer license
- *
  * dof [file [file [...]] do command
  * if file = - then read from stdin
  * if command = - then read from stdin
@@ -13,7 +9,11 @@
  * %d = dirname
  * %e = extension
  *
- * dof *.txt do cp %f ${dir}/%b.%e \; chown %u:%g ${dir}/%b.%e
+ * dof *.txt do cp %f ${dir}/%b.%e \; chown root:root ${dir}/%b.%e
+ *
+ * Nicholas Christopoulos (nereus@freemail.gr)
+ *
+ * this software is released under GPLv3 or newer license
  */
 
 #include <stdio.h>
@@ -107,7 +107,7 @@ static char *list_to_string(list_t *list, const char *delim)
 	return ret;
 }
 
-//
+// returns the name of the file without the directory and the extension
 static char *basename(const char *source)
 {
 	static char buf[PATH_MAX];
@@ -123,7 +123,7 @@ static char *basename(const char *source)
 	return buf;
 }
 
-//
+// returns the directory of the file without the trailing '/'
 static char *dirname(const char *source)
 {
 	static char buf[PATH_MAX];
@@ -138,7 +138,7 @@ static char *dirname(const char *source)
 	return buf;
 }
 
-//
+// returns the extension of the file without the '.'
 static char *extname(const char *source)
 {
 	static char buf[PATH_MAX];
@@ -156,7 +156,8 @@ static char *extname(const char *source)
 	return buf;
 }
 
-//
+// converts and returns the commands to run with 'system()'
+// the buffer must be freed by the caller
 static char *dof(const char *fmt, const char *data)
 {
 	const char *p, *v;
