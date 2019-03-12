@@ -244,6 +244,7 @@ Usage: dof [list] do [commands]\n\
 Options:\n\
 \t-e\texecute; dof displays what commands would be run, this option executes them.\n\
 \t-f\tforce non-stop; dof stops on error, this option forces dof to ignore errors.\n\
+\t-p\tplain files only; directories, devices, etc are ignored.\n\
 \t-\tread from stdin\n\
 \t-h\tthis screen\n\
 \t-v\tversion and program information\n\
@@ -272,6 +273,7 @@ int main(int argc, char **argv)
 	int		flags = 0, state = 0, exit_status = 0;
 	node_t	*cur;
 	char	*cmds, *cmdbuf;
+	struct stat st;
 
 	list_init(&file_list);
 	list_init(&cmds_list);
@@ -299,6 +301,7 @@ int main(int argc, char **argv)
 				switch ( argv[i][j] ) {
 				case 'e': flags |= 0x01; break;
 				case 'f': flags |= 0x02; break;
+				case 'p': flags |= 0x04; break;
 				case 'h': puts(usage); return 1;
 				case 'v': puts(verss); return 1;
 				default:  puts("unknown option."); return 1;
@@ -328,6 +331,14 @@ int main(int argc, char **argv)
 	cmds = list_to_string(&cmds_list, " ");
 	cur = file_list.root;
 	while ( cur ) {
+		if ( flags & 0x04 ) { // plain files only
+			if ( stat(cur->str, &st) == 0 ) {
+				if ( ! S_ISREG(st.st_mode) ) {
+					cur = cur->next;
+					continue;
+					}
+				}
+			}
 		cmdbuf = dof(cmds, cur->str);
 		if ( (flags & 0x01) == 0 ) // not execute-option
 			fprintf(stdout, "%s\n", cmdbuf);
