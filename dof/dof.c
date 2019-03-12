@@ -6,10 +6,12 @@
  * dof [file [file [...]] do command
  * if file = - then read from stdin
  * if command = - then read from stdin
- * %n = new-line (new command)
  * -t = test
- * -r = recursive
  * -f = force (no stop on error)
+ * %f = file
+ * %b = basename
+ * %d = dirname
+ * %e = extention
  *
  * dof *.txt do cp %f ${dir}/%b.%e \; chown %u:%g ${dir}/%b.%e
  */
@@ -231,13 +233,15 @@ static char *dof(const char *fmt, const char *data)
 
 // --- main() ---
 
+#define APP_DESCR \
+"dof (do-for) run commands for each element of 'list'."
+
 static const char *usage = "\
 Usage: dof [list] do [commands]\n\
-dof (do-for) run commands for each element of 'list'.\n\
+"APP_DESCR"\n\
 \n\
 Options:\n\
 \t-t\ttest; displays what command would be run\n\
-\t-r\trecursive\n\
 \t-f\tforce non-stop\n\
 \t-\tread from stdin\n\
 \t-h\tthis screen\n\
@@ -245,7 +249,8 @@ Options:\n\
 ";
 
 static const char *verss = "\
-dof version 1.00\n\
+dof version 0.10\n\
+"APP_DESCR"\n\
 \n\
 Copyright (C) 2017 Free Software Foundation, Inc.\n\
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.\n\
@@ -257,8 +262,7 @@ Written by Nicholas Christopoulos <mailto:nereus@freemail.gr>\n\
 
 int main(int argc, char **argv)
 {
-	int		flags = 0;
-	int		state = 0;
+	int		flags = 0, state = 0, exit_status = 0;
 	node_t	*cur;
 	char	*cmds, *cmdbuf;
 
@@ -273,9 +277,9 @@ int main(int argc, char **argv)
 
 				while ( fgets(buf, LINE_MAX, stdin) )	{
 					if ( state == 0 )
-						list_add(&file_list, argv[i]);
+						list_add(&file_list, buf);
 					else
-						list_add(&cmds_list, argv[i]);
+						list_add(&cmds_list, buf);
 					}
 				}
 
@@ -313,8 +317,14 @@ int main(int argc, char **argv)
 		cmdbuf = dof(cmds, cur->str);
 		if ( flags & 0x01 )
 			fprintf(stdout, "%s:\n\t%s\n", cur->str, cmdbuf);
-//else
-// system(cmdbuf) || die
+		else {
+			if ( (exit_status = system(cmdbuf)) != 0 ) {
+				if ( ! (flags & 0x02) ) {
+					free(cmdbuf);
+					break;
+					}
+				}
+			}
 		free(cmdbuf);
 		cur = cur->next;
 		}
@@ -322,5 +332,5 @@ int main(int argc, char **argv)
 	// cleanup
 	list_clear(&file_list);
 	list_clear(&cmds_list);
-	return 0;
+	return exit_status;
 }

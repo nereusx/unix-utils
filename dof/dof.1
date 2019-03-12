@@ -1,0 +1,38 @@
+\# This is a comment... (old versions using .\", older \")
+\# exec: groff Man-Page.man -Tascii -man | less
+\#
+\# .TH cmd-name section [date [version [page-descr]]]
+.TH cmd 8 "12 Mar 1971" "1.0" "cmd man page"
+\# .SH section; .SS subsection
+.SH NAME
+cmd-name \- short description
+.SH SYNOPSIS
+\# .B bold; .I italic; .BI bold and italic; .BR bold roman; .IR italic roman;
+\#" in-line format: \fB bold; \fI italic; \fR roman;
+.B command
+[\fB\-options\fR]
+.IR parameters ...
+\# Extra syntactical (SYNOPSIS) format:
+\# .SY command; .OP \-df...; .OP \-d cs; .OP \-f fam; ...; .RI [ parameter .\|.\|. ]; .YS;
+.SH DESCRIPTION
+\# .PP new paragraph; .br break line;
+\fIcommand\fR blah blah blah...
+\# .EX
+\# This is an example
+\# .EE
+\# .SH OPTIONS
+\# .TP
+\# .BR \-o ", " \-\-long-option [=\fIdata\fR]
+\# blah blah ...
+\# .SH SEE ALSO
+\# command1(section), command2(section)
+.SH AUTHOR
+\# '\:' is line break point
+.MT nereus@\:freemail.gr
+Nicholas Christopoulos
+.ME
+.br
+.UR http://\:christopoulos.\:users.\:sourceforge.net
+Personal pages
+.UE
+\# EOF

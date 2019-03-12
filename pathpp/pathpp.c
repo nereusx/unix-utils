@@ -117,7 +117,6 @@ static char *duppath()
  to system's PATH.\
  With few words, cleanups the PATH."
 
-
 static const char *usage = "\
 Usage (csh): setenv PATH `path++ [-s|-u|-c|-b] [dir ...]`\n\
 OR   (bash): export PATH=$(path++ [-s|-u|-c|-b] [dir ...])\n\
