@@ -11,6 +11,7 @@
  * %d = dirname
  * %e = extension
  *
+ * dof 1 2 3 do echo %f
  * dof *.txt do cp %f ${dir}/%b.%e \; chown root:root ${dir}/%b.%e
  *
  * Nicholas Christopoulos (nereus@freemail.gr)
@@ -253,7 +254,7 @@ Options:\n\
 \t-v\tversion and program information\n\
 \n\
 Variables:\n\
-\t%f\tfull path filename\n\
+\t%f\tthe string (if file; the full path name)\n\
 \t%b\tthe basename (no directory, no extension)\n\
 \t%d\tthe directory (without trailing '/')\n\
 \t%e\tthe extension (without '.')\n\
