@@ -276,8 +276,12 @@ int main(int argc, char **argv)
 				char buf[LINE_MAX];
 
 				while ( fgets(buf, LINE_MAX, stdin) )	{
-					if ( state == 0 )
-						list_add(&file_list, buf);
+					if ( state == 0 ) {
+						if ( strcmp(argv[i], ".") == 0 || strcmp(argv[i], "..") == 0 )
+							; // ignore them
+						else
+							list_add(&file_list, buf);
+						}
 					else
 						list_add(&cmds_list, buf);
 					}
@@ -297,8 +301,12 @@ int main(int argc, char **argv)
 		else if ( strcmp(argv[i], "do") == 0 && state == 0 )
 			state ++;
 		else {
-			if ( state == 0 )
-				list_add(&file_list, argv[i]);
+			if ( state == 0 ) {
+				if ( strcmp(argv[i], ".") == 0 || strcmp(argv[i], "..") == 0 )
+					; // ignore them
+				else
+					list_add(&file_list, argv[i]);
+				}
 			else
 				list_add(&cmds_list, argv[i]);
 			}
