@@ -5,6 +5,7 @@
  * -e = execute, default dof run in test mode (dryrun)
  * -f = force (no stop on error)
  * -p = regular files only
+ * -d = directories only
  * %f = file
  * %b = basename
  * %d = dirname
@@ -303,6 +304,7 @@ int main(int argc, char **argv)
 				case 'e': flags |= 0x01; break;
 				case 'f': flags |= 0x02; break;
 				case 'p': flags |= 0x04; break;
+				case 'd': flags |= 0x08; break;
 				case 'h': puts(usage); return 1;
 				case 'v': puts(verss); return 1;
 				default:  puts("unknown option."); return 1;
@@ -332,11 +334,19 @@ int main(int argc, char **argv)
 	cmds = list_to_string(&cmds_list, " ");
 	cur = file_list.root;
 	while ( cur ) {
-		if ( flags & 0x04 ) { // plain files only
+		if ( flags & 0x04 || flags & 0x08 ) { // file attribute check
 			if ( stat(cur->str, &st) == 0 ) {
-				if ( ! S_ISREG(st.st_mode) ) {
-					cur = cur->next;
-					continue;
+				if ( flags & 0x04 ) { // plain files only
+					if ( ! S_ISREG(st.st_mode) ) {
+						cur = cur->next;
+						continue;
+						}
+					}
+				if ( flags & 0x08 ) { // directories only
+					if ( ! S_ISDIR(st.st_mode) ) {
+						cur = cur->next;
+						continue;
+						}
 					}
 				}
 			}
