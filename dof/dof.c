@@ -272,6 +272,7 @@ There is NO WARRANTY, to the extent permitted by law.\n\
 Written by Nicholas Christopoulos <mailto:nereus@freemail.gr>\n\
 ";
 
+// return a pointer to filename without the directory
 const char *namep(const char *file)
 {
 	const char *p;
@@ -280,6 +281,7 @@ const char *namep(const char *file)
 	return file;
 }
 
+//
 int main(int argc, char **argv)
 {
 	int		flags = 0, state = 0, exit_status = 0;
