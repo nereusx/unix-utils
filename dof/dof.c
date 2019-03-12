@@ -11,7 +11,7 @@
  * %f = file
  * %b = basename
  * %d = dirname
- * %e = extention
+ * %e = extension
  *
  * dof *.txt do cp %f ${dir}/%b.%e \; chown %u:%g ${dir}/%b.%e
  */
@@ -201,7 +201,7 @@ static char *dof(const char *fmt, const char *data)
 				v = data;
 				while ( *v )	*d ++ = *v ++;
 				break;
-			case 'b':		// basename (no directory, no extention)
+			case 'b':		// basename (no directory, no extension)
 				v = basename(data);
 				while ( *v )	*d ++ = *v ++;
 				break;
@@ -209,7 +209,7 @@ static char *dof(const char *fmt, const char *data)
 				v = dirname(data);
 				while ( *v )	*d ++ = *v ++;
 				break;
-			case 'e':		// extention
+			case 'e':		// extension
 				v = extname(data);
 				while ( *v )	*d ++ = *v ++;
 				break;
@@ -246,6 +246,12 @@ Options:\n\
 \t-\tread from stdin\n\
 \t-h\tthis screen\n\
 \t-v\tversion and program information\n\
+\n\
+Variables:\n\
+\t%f\tfull path filename\n\
+\t%b\tthe basename (no directory, no extension)\n\
+\t%d\tthe directory (without trailing '/')\n\
+\t%e\tthe extension (without '.')\n\
 ";
 
 static const char *verss = "\
