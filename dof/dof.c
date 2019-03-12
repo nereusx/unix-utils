@@ -270,6 +270,14 @@ There is NO WARRANTY, to the extent permitted by law.\n\
 Written by Nicholas Christopoulos <mailto:nereus@freemail.gr>\n\
 ";
 
+const char *namep(const char *file)
+{
+	const char *p;
+	if ( (p = strrchr(file, '/')) != NULL )
+		return p + 1;
+	return file;
+}
+
 int main(int argc, char **argv)
 {
 	int		flags = 0, state = 0, exit_status = 0;
@@ -288,7 +296,10 @@ int main(int argc, char **argv)
 
 				while ( fgets(buf, LINE_MAX, stdin) )	{
 					if ( state == 0 ) {
-						if ( strcmp(argv[i], ".") == 0 || strcmp(argv[i], "..") == 0 )
+						if (
+							strcmp(namep(argv[i]), ".") == 0 ||
+							strcmp(namep(argv[i]), "..") == 0
+							)
 							; // ignore them
 						else
 							list_add(&file_list, buf);
@@ -315,7 +326,10 @@ int main(int argc, char **argv)
 			state ++;
 		else {
 			if ( state == 0 ) {
-				if ( strcmp(argv[i], ".") == 0 || strcmp(argv[i], "..") == 0 )
+				if (
+					strcmp(namep(argv[i]), ".") == 0 ||
+					strcmp(namep(argv[i]), "..") == 0
+					)
 					; // ignore them
 				else
 					list_add(&file_list, argv[i]);
