@@ -1,6 +1,7 @@
 #
 
 INSTALL := /bin
+MANDIR  := /usr/share/man/man1
 CFLAGS  := -O -Wall -Wno-unused-result -static
 
 # select compiler
@@ -21,4 +22,5 @@ path++: pathpp.c
 
 install: path++
 	install --mode=755 --owner=root --group=root -s path++ $(INSTALL)
+	install --mode=755 --owner=root --group=root path++.1 $(MANDIR)
 

@@ -1,0 +1,55 @@
+\# exec: groff Man-Page.man -Tascii -man | less
+\#
+\# .TH cmd-name section [date [version [page-descr]]]
+.TH path++ 1 "12 Mar 2019" "v1.2" "User Commands"
+.SH NAME
+path++ \- cleanup path
+.SH SYNOPSIS
+\# .SY command; .OP \-df...; .OP \-d cs; .OP \-f fam; ...; .RI [ parameter .\|.\|. ]; .YS;
+.SY path++
+.OP \-scb
+.OP \-h
+.OP \-v
+.RI [ directory .\|.\|. ]
+.YS
+.SH DESCRIPTION
+Check directories of path removes non-exists, duplicated, and add directories to system's PATH.
+With few words, cleanups the PATH. When it runs, it prints out the corrected path.
+.PP
+Example (tcsh):
+.EX
+	setenv PATH `path++`
+.EE
+.PP
+Example (bash):
+.EX
+	export PATH=$(path++)
+.EE
+.SH OPTIONS
+.TP
+.BR \-s
+Add new directories at the beginning; otherwise appends
+.TP
+.BR \-c
+Print csh command
+.TP
+.BR \-b
+Print sh command
+.TP
+.BR \-h
+Help screen
+.TP
+.BR \-v
+Program information (version, license, ...)
+\#
+\# .SH SEE ALSO
+\# command1(section), command2(section)
+.SH AUTHOR
+.MT nereus@\:freemail.gr
+Nicholas Christopoulos
+.ME
+.br
+.UR https://github.com/nereusx/unix-utils
+Prject page:
+.UE
+\# EOF

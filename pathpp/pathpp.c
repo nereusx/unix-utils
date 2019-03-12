@@ -111,13 +111,37 @@ static char *duppath()
 	return buf;
 }
 
+#define APP_DESCR \
+"Check directories of path removes non-exists,\
+ duplicated, and add directories\
+ to system's PATH.\
+ With few words, cleanups the PATH."
+
+
 static const char *usage = "\
-check and add directories to a path, nicholas christopoulos (nereus@freemail.gr)\n\
-usage: setenv PATH `path++ [-s|-u|-c|-b] [dir ...]`\n\
+Usage (csh): setenv PATH `path++ [-s|-u|-c|-b] [dir ...]`\n\
+OR   (bash): export PATH=$(path++ [-s|-u|-c|-b] [dir ...])\n\
+\n"APP_DESCR"\n\
+Options:\n\
 \t-s\tadd new directories at the beginning; otherwise appends\n\
 \t-c\tprint csh command\n\
 \t-b\tprint sh command\n\
-\tdefault\tprints the new path\n\
+\t-h\tthis screen\n\
+\t-v\tversion and program information\n\
+\n\
+\twith no arguments it just prints the corrected path.\n\
+";
+
+static const char *verss = "\
+path++ version 1.2\n\
+\n"APP_DESCR"\n\
+\n\
+Copyright (C) 2017-2019 Free Software Foundation, Inc.\n\
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.\n\
+This is free software: you are free to change and redistribute it.\n\
+There is NO WARRANTY, to the extent permitted by law.\n\
+\n\
+Written by Nicholas Christopoulos <mailto:nereus@freemail.gr>\n\
 ";
 
 int main(int argc, char **argv)
@@ -133,6 +157,8 @@ int main(int argc, char **argv)
 				case 'c': flags |= 0x02; break;
 				case 'b': flags |= 0x04; break;
 				case 's': flags |= 0x08; break;
+				case 'h': puts(usage); return 1;
+				case 'v': puts(verss); return 1;
 				default:  puts(usage); return 1;
 					}
 				}
