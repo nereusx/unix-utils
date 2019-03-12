@@ -6,7 +6,7 @@
  * dof [file [file [...]] do command
  * if file = - then read from stdin
  * if command = - then read from stdin
- * -t = test
+ * -e = execute, default dof run in test mode (dryrun)
  * -f = force (no stop on error)
  * %f = file
  * %b = basename
@@ -241,8 +241,8 @@ Usage: dof [list] do [commands]\n\
 "APP_DESCR"\n\
 \n\
 Options:\n\
-\t-t\ttest; displays what command would be run\n\
-\t-f\tforce non-stop\n\
+\t-e\texecute; dof displays what commands would be run, this option executes them.\n\
+\t-f\tforce non-stop; dof stops on error, this option forces dof to ignore errors.\n\
 \t-\tread from stdin\n\
 \t-h\tthis screen\n\
 \t-v\tversion and program information\n\
@@ -286,9 +286,8 @@ int main(int argc, char **argv)
 			// check options
 			for ( int j = 1; argv[i][j]; j ++ ) {
 				switch ( argv[i][j] ) {
-				case 't': flags |= 0x01; break;
+				case 'e': flags |= 0x01; break;
 				case 'f': flags |= 0x02; break;
-				case 'r': flags |= 0x04; break;
 				case 'h': puts(usage); return 1;
 				case 'v': puts(verss); return 1;
 				default:  puts("unknown option."); return 1;
@@ -315,11 +314,11 @@ int main(int argc, char **argv)
 	cur = file_list.root;
 	while ( cur ) {
 		cmdbuf = dof(cmds, cur->str);
-		if ( flags & 0x01 )
+		if ( (flags & 0x01) == 0 ) // not execute-option
 			fprintf(stdout, "%s:\n\t%s\n", cur->str, cmdbuf);
 		else {
 			if ( (exit_status = system(cmdbuf)) != 0 ) {
-				if ( ! (flags & 0x02) ) {
+				if ( (flags & 0x02) == 0 ) { // not force-option
 					free(cmdbuf);
 					break;
 					}
