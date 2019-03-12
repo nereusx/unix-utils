@@ -249,7 +249,7 @@ Options:\n\
 ";
 
 static const char *verss = "\
-dof version 0.10\n\
+dof version 1.00\n\
 "APP_DESCR"\n\
 \n\
 Copyright (C) 2017 Free Software Foundation, Inc.\n\

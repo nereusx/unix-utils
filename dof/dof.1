@@ -1,38 +1,47 @@
-\# This is a comment... (old versions using .\", older \")
-\# exec: groff Man-Page.man -Tascii -man | less
+\# exec: groff dof.1 -Tascii -man | less
 \#
 \# .TH cmd-name section [date [version [page-descr]]]
-.TH cmd 8 "12 Mar 1971" "1.0" "cmd man page"
-\# .SH section; .SS subsection
+.TH dof 1 "12 Mar 2019" "v1.0" "User Commands"
 .SH NAME
-cmd-name \- short description
+dof \- (do-for) executes commands for each item of a list
 .SH SYNOPSIS
-\# .B bold; .I italic; .BI bold and italic; .BR bold roman; .IR italic roman;
-\#" in-line format: \fB bold; \fI italic; \fR roman;
-.B command
-[\fB\-options\fR]
-.IR parameters ...
-\# Extra syntactical (SYNOPSIS) format:
 \# .SY command; .OP \-df...; .OP \-d cs; .OP \-f fam; ...; .RI [ parameter .\|.\|. ]; .YS;
+.SY dof
+.OP \-ef
+.OP \-h
+.OP \-v
+.RI [item .\|.\|. | - ]\ do\ [ command | - ]
 .SH DESCRIPTION
-\# .PP new paragraph; .br break line;
-\fIcommand\fR blah blah blah...
-\# .EX
-\# This is an example
-\# .EE
-\# .SH OPTIONS
-\# .TP
-\# .BR \-o ", " \-\-long-option [=\fIdata\fR]
-\# blah blah ...
+\fIdof\fR executes commands for each item (file or string) of a list
+.PP
+Example, convert all mp3s to ogg
+.EX
+	dof *.mp3 do ffmpeg -i %f %b.ogg
+.EE
+.SH OPTIONS
+.TP
+.BR \-e
+execute; dof displays what commands would be run, this option executes them.
+.TP
+.BR \-f
+force non-stop; dof stops on error, this option forces dof to ignore errors.
+.TP
+.BR \-
+read from stdin.
+.TP
+.BR \-h
+help screen.
+.TP
+.BR \-v
+version and license information.
 \# .SH SEE ALSO
 \# command1(section), command2(section)
 .SH AUTHOR
-\# '\:' is line break point
 .MT nereus@\:freemail.gr
 Nicholas Christopoulos
 .ME
 .br
-.UR http://\:christopoulos.\:users.\:sourceforge.net
-Personal pages
+.UR https://github.com/nereusx/unix-utils
+Prject page:
 .UE
 \# EOF
