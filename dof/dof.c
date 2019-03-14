@@ -197,8 +197,10 @@ static char *dof(const char *fmt, const char *data)
 			continue;
 			}
 
-		// translate % metacommands
+		// translate % expressions
 		if ( *p == '%' ) {
+			char block[LINE_MAX], *bp;
+			
 			p ++;
 			switch ( *p ) {
 			case 'f':		// full pathname
@@ -217,6 +219,19 @@ static char *dof(const char *fmt, const char *data)
 				v = extname(data);
 				while ( *v )	*d ++ = *v ++;
 				break;
+			case '(':		// block
+				p ++;
+				bp = block;
+				while ( *p ) {
+					if ( *p == ')' )
+						break;
+					*bp ++ = *p ++;
+					}
+				*bp = '\0';
+				break;			
+			case '%':		// none
+				*d ++ = *p;
+				break;
 			default:
 				fprintf(stderr, "unknown element `%%%c'\n", *p);
 				}
@@ -226,7 +241,8 @@ static char *dof(const char *fmt, const char *data)
 			*d ++ = *p;
 
 		// next
-		p ++;
+		if ( *p )
+			p ++;
 		}
 
 	// close destination string
