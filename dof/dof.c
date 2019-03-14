@@ -159,13 +159,30 @@ static char *extname(const char *source)
 	return buf;
 }
 
+//
+static char *execblock(const char *source, const char *str)
+{
+	static char buf[PATH_MAX];
+	char		*b;
+	const char	*p;
+
+	strcpy(buf, str);
+	p = source;
+	b = buf;
+
+	// TODO: parse whole string expression,
+	//		use str as input, buf as output
+	
+	return buf;
+}
+
 // converts and returns the commands to run with 'system()'
 // the buffer must be freed by the caller
 static char *dof(const char *fmt, const char *data)
 {
 	const char *p, *v;
 	char *d, *dest;
-	int inside_sq = 0, count = 0, maxlen;
+	int inside_sq = 0, count = 0, maxlen, level;
 
 	// calculate a maximum length for the returned buffer
 	p = fmt;
@@ -222,12 +239,20 @@ static char *dof(const char *fmt, const char *data)
 			case '(':		// block
 				p ++;
 				bp = block;
+				level = 0;
 				while ( *p ) {
-					if ( *p == ')' )
-						break;
+					if ( *p == ')' ) {
+						level --;
+						if ( level < 0 )
+							break;
+						}
+					else if ( *p == '(' )
+						level ++;
 					*bp ++ = *p ++;
 					}
 				*bp = '\0';
+				v = execblock(block, data);
+				while ( *v )	*d ++ = *v ++;
 				break;			
 			case '%':		// none
 				*d ++ = *p;
