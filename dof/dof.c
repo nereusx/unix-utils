@@ -172,6 +172,33 @@ static char *execblock(const char *source, const char *str)
 
 	// TODO: parse whole string expression,
 	//		use str as input, buf as output
+
+	// parser
+/*
+	while ( *p == ' ' || *p == '\t' ) p ++;
+	if ( isalpha(*p) ) {
+		char kw[256], *k;
+
+		// read the keyword
+		k = kw;
+		while ( *p ) {
+			if ( !isalpha(*p) )
+				break;
+			*k ++ = *p ++;
+			}
+		*k = '\0';
+
+		// put 'p' to point in paramters
+		while ( *p == ' ' || *p == '\t' ) p ++;
+
+		// execute it
+		if ( strcmp(kw, "replace") == 0 ) {
+			// get string 1 (what)
+			// get string 2 (with)
+			// replace all occurences of 'what' with 'with'
+			}
+		}
+*/
 	
 	return buf;
 }
