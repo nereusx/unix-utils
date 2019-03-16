@@ -21,10 +21,10 @@ dof: dof.c
 	$(CC) $(CFLAGS) dof.c -o dof
 
 html: dof.1
-	groff dof.1 -Thtml -man > dof.html
+	groff dof.1 -Thtml -man > dof.1.html
 
 pdf: dof.1
-	groff dof.1 -Tpdf -man > dof.pdf
+	groff dof.1 -Tpdf -man > dof.1.pdf
 
 install: dof
 	install --mode=755 --owner=root --group=root -s dof $(INSTALL)

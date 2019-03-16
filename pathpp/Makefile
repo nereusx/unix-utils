@@ -21,10 +21,10 @@ path++: pathpp.c
 	$(CC) $(CFLAGS) pathpp.c -o path++
 
 html: path++.1
-	groff path++.1 -Thtml -man > path++.html
+	groff path++.1 -Thtml -man > path++.1.html
 
 pdf:
-	groff path++.1 -Tpdf -man > path++.pdf
+	groff path++.1 -Tpdf -man > path++.1.pdf
 
 install: path++
 	install --mode=755 --owner=root --group=root -s path++ $(INSTALL)
