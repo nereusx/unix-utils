@@ -20,6 +20,9 @@ clean:
 dof: dof.c
 	$(CC) $(CFLAGS) dof.c -o dof
 
+html: dof.1
+	groff dof.1 -Thtml > dof.html
+
 install: dof
 	install --mode=755 --owner=root --group=root -s dof $(INSTALL)
 	install --mode=755 --owner=root --group=root dof.1 $(MANDIR)

@@ -20,6 +20,9 @@ clean:
 path++: pathpp.c
 	$(CC) $(CFLAGS) pathpp.c -o path++
 
+html: path++.1
+	groff path++.1 -Thtml > pathpp.html
+
 install: path++
 	install --mode=755 --owner=root --group=root -s path++ $(INSTALL)
 	install --mode=755 --owner=root --group=root path++.1 $(MANDIR)

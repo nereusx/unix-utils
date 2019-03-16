@@ -1,0 +1,46 @@
+<!-- Creator     : groff version 1.22.3 -->
+<!-- CreationDate: Sat Mar 16 07:07:46 2019 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title></title>
+</head>
+<body>
+
+<hr>
+
+
+<p>dof &minus; (do-for) executes commands for each item of
+a list <i>dof</i> executes commands for each item (file or
+string) of a list Example, convert all mp3s to ogg dof -e
+*.mp3 do ffmpeg -i %f %b.ogg read from stdin. execute;
+<i>dof</i> displays what commands would be run, this option
+executes them. force non-stop; <i>dof</i> stops on error
+(exit code != 0), this option forces <i>dof</i> to ignore
+them. plain files only; directories, devices, etc are
+ignored. directories only; plain-files, devices, etc are
+ignored. help screen. version and license information. In
+the &lsquo;commands&rsquo; you can use several
+program&rsquo;s variables. Variables are recognized by
+prefix &rsquo;%&rsquo;. the full string (or filename) the
+basename (no directory, no extension) the dirname (only the
+directory without the &rsquo;/&rsquo; suffix) the extension
+without &rsquo;.&rsquo; prefix the character
+&rsquo;%&rsquo;. string processing expression... not used
+yet. Items &rsquo;.&rsquo; and &rsquo;..&rsquo; are ignored.
+Nicholas Christopoulos</p>
+
+<p>Prject page:</p></table>
+<hr>
+</body>
+</html>
