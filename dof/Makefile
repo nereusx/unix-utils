@@ -23,6 +23,9 @@ dof: dof.c
 html: dof.1
 	groff dof.1 -Thtml > dof.html
 
+pdf: dof.1
+	groff dof.1 -Tpdf > dof.pdf
+
 install: dof
 	install --mode=755 --owner=root --group=root -s dof $(INSTALL)
 	install --mode=755 --owner=root --group=root dof.1 $(MANDIR)
