@@ -8,6 +8,7 @@ dof \- (do-for) executes commands for each item of a list
 \# .SY command; .OP \-efp...; .OP \-d cs; .OP \-f fam; ...; .RI [ parameter .\|.\|. ]; .YS;
 .SY dof
 .OP \-efp
+.OP \-l
 .OP \-h
 .OP \-v
 .RI [item .\|.\|. | - ]\ do\ [ command | - ]
@@ -35,6 +36,12 @@ plain files only; directories, devices, etc are ignored.
 .BR \-d
 directories only; plain-files, devices, etc are ignored.
 .TP
+.BR \-l
+print recipes (/etc/dof.conf, ~/.dof)
+.TP
+.BR \-\-\fIrecipe\fR
+execute recipe (ex: dof --to-ogg)
+.TP
 .BR \-h
 help screen.
 .TP
@@ -60,6 +67,16 @@ the character '%'.
 .TP
 .BR %(expr)
 string processing expression... not used yet.
+.SH FILES
+dof reads \fI/etc/dof.conf\fR and \fI~/.dof\fR files.
+These files contains recipes in form `name: parameters'.
+These recipes can later executed with \fB--\fIname\fR option.
+.PP
+Example:
+.EX
+	to-ogg: *.mp3 do ffmpeg -i %f %b.ogg
+	to-png: *.{jpg,gif} do convert %f %b.png
+.EE
 .SH NOTES
 .TP
 Items '.' and '..' are ignored.

@@ -30,6 +30,7 @@
 typedef struct s_node node_t;
 struct s_node {
 	char *str;
+	char *data;
 	node_t *next;
 	};
 
@@ -41,6 +42,7 @@ struct s_list {
 
 static list_t file_list;
 static list_t cmds_list;
+static list_t rcpt_list;
 
 #ifdef STRDUP
 // clone a string
@@ -56,7 +58,23 @@ static char *strdup(const char *src)
 static void list_add(list_t *list, const char *str)
 {
 	node_t *np = (node_t *) malloc(sizeof(node_t));
-	np->str = strdup(str);
+	np->str  = strdup(str);
+	np->data = NULL;
+	np->next = NULL;
+	if ( list->root ) {
+		list->tail->next = np;
+		list->tail = np;
+		}
+	else
+		list->root = list->tail = np;
+}
+
+// add node to list
+static void list_addpair(list_t *list, const char *key, const char *value)
+{
+	node_t *np = (node_t *) malloc(sizeof(node_t));
+	np->str  = strdup(key);
+	np->data = strdup(value);
 	np->next = NULL;
 	if ( list->root ) {
 		list->tail->next = np;
@@ -303,6 +321,45 @@ static char *dof(const char *fmt, const char *data)
 	return dest;
 }
 
+// read configuration files
+void	read_conf()
+{
+	FILE	*fp;
+	char	buf[LINE_MAX], *p, *key, *data;
+	char	file[PATH_MAX];
+
+	for ( int i = 0; i < 2; i ++ ) {
+		switch ( i ) {
+		case 0: strcpy(file, "/etc/dof.conf"); break;
+		case 1: strcpy(file, getenv("HOME")); strcat(file, "/.dof"); break;
+			}
+		if ( (fp = fopen(file, "rt")) != NULL ) {
+			while ( fgets(buf, LINE_MAX, fp) ) {
+				p = buf;
+				while ( *p == ' ' || *p == '\t' ) p ++;
+				if ( *p == '\n' || *p == '\0' || *p == '#' )
+					continue;
+				key = p;
+				while ( *p ) {
+					if ( *p == ':' )
+						break;
+					p ++;
+					}
+				if ( *p == ':' ) {
+					*p = '\0';
+					p ++;
+					while ( *p == ' ' || *p == '\t' ) p ++;
+					data = p;
+					if ( data[strlen(data)-1] == '\n' )
+						data[strlen(data)-1] = '\0';
+					list_addpair(&rcpt_list, key, data);
+					}
+				}
+			fclose(fp);
+			}
+		}
+}
+
 // --- main() ---
 
 #define APP_DESCR \
@@ -317,6 +374,8 @@ Options:\n\
 \t-f\tforce non-stop; dof stops on error, this option forces dof to ignore errors.\n\
 \t-p\tplain files only; directories, devices, etc are ignored.\n\
 \t-d\tdirectories only; plain files, devices, etc are ignored.\n\
+\t-l\tprint recipes (/etc/dof.conf, ~/.dof)\n\
+\t--<recipe>\n\t\texecute recipe (ex: dof --to-ogg)\n\
 \t-\tread from stdin\n\
 \t-h\tthis screen\n\
 \t-v\tversion and program information\n\
@@ -353,12 +412,14 @@ const char *namep(const char *file)
 int main(int argc, char **argv)
 {
 	int		flags = 0, state = 0, exit_status = 0;
+	int		f_conf_init = 0;
 	node_t	*cur;
 	char	*cmds, *cmdbuf;
 	struct stat st;
 
 	list_init(&file_list);
 	list_init(&cmds_list);
+	list_init(&rcpt_list);
 	for ( int i = 1; i < argc; i ++ ) {
 		if ( argv[i][0] == '-' && state == 0 ) {
 
@@ -390,7 +451,32 @@ int main(int argc, char **argv)
 				case 'd': flags |= 0x08; break;
 				case 'h': puts(usage); return 1;
 				case 'v': puts(verss); return 1;
-				default:  puts("unknown option."); return 1;
+				case '-':
+						// execute recipe
+						if ( !f_conf_init ) { read_conf(); f_conf_init = 1; }						
+						cur = rcpt_list.root;
+						while ( cur ) {
+							if ( strcmp(cur->str, argv[i]+2) == 0 ) {
+								char cmd[LINE_MAX];
+								snprintf(cmd, LINE_MAX, "dof -e %s", cur->data);
+								return system(cmd);
+								}
+							cur = cur->next;
+							}
+						return 1;
+				case 'l':
+						// list recipes
+						if ( !f_conf_init ) { read_conf(); f_conf_init = 1; }						
+						cur = rcpt_list.root;
+						while ( cur ) {
+							printf("%s: (%s)\n", cur->str, cur->data);
+							cur = cur->next;
+							}
+						return 0;
+				default:
+					// error
+					puts("unknown option.");
+					return 1;
 					}
 				}
 			}
@@ -454,5 +540,6 @@ int main(int argc, char **argv)
 	// cleanup
 	list_clear(&file_list);
 	list_clear(&cmds_list);
+	list_clear(&rcpt_list);
 	return exit_status;
 }
