@@ -1,5 +1,6 @@
 #
 
+APPNAME := path++
 INSTALL := /bin
 MANDIR  := /usr/share/man/man1
 CFLAGS  := -O -Wall -Wno-unused-result -static
@@ -12,21 +13,24 @@ else
 	CC=musl-gcc
 endif
 
-all: path++
+all: $(APPNAME)
 
 clean:
-	rm path++
+	rm $(APPNAME) $(APPNAME).1
 
-path++: pathpp.c
-	$(CC) $(CFLAGS) pathpp.c -o path++
+$(APPNAME): pathpp.c
+	$(CC) $(CFLAGS) pathpp.c -o $(APPNAME)
 
-html: path++.1
-	groff path++.1 -Thtml -man > path++.1.html
+$(APPNAME).1: pathpp.man
+	cp pathpp.man $(APPNAME).1
 
-pdf:
-	groff path++.1 -Tpdf -man > path++.1.pdf
+html: $(APPNAME).1
+	groff $(APPNAME).1 -Thtml -man > $(APPNAME).1.html
 
-install: path++
-	install --mode=755 --owner=root --group=root -s path++ $(INSTALL)
-	install --mode=755 --owner=root --group=root path++.1 $(MANDIR)
+pdf: $(APPNAME).1
+	groff $(APPNAME).1 -Tpdf -man > $(APPNAME).1.pdf
+
+install: $(APPNAME) $(APPNAME).1
+	install --mode=755 --owner=root --group=root -s $(APPNAME) $(INSTALL)
+	install --mode=755 --owner=root --group=root $(APPNAME).1 $(MANDIR)
 
