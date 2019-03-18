@@ -74,8 +74,8 @@ These recipes can later executed with \fB--\fIname\fR option.
 .PP
 Example:
 .EX
-	to-ogg: *.mp3 do ffmpeg -i %f %b.ogg
-	to-png: *.{jpg,gif} do convert %f %b.png
+	to-ogg: *.wav *.mp3 do ffmpeg -i %f %b.ogg
+	to-png: *.jpg *.gif do convert %f %b.png
 .EE
 .SH NOTES
 .TP
