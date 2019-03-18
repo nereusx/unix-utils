@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <glob.h>
 
 typedef struct s_node node_t;
 struct s_node {
@@ -55,6 +56,7 @@ static char *strdup(const char *src)
 #endif
 
 // add node to list
+// this just stores a string in the list
 static void list_add(list_t *list, const char *str)
 {
 	node_t *np = (node_t *) malloc(sizeof(node_t));
@@ -70,6 +72,7 @@ static void list_add(list_t *list, const char *str)
 }
 
 // add node to list
+// this stores a key and a value to the list
 static void list_addpair(list_t *list, const char *key, const char *value)
 {
 	node_t *np = (node_t *) malloc(sizeof(node_t));
@@ -82,6 +85,23 @@ static void list_addpair(list_t *list, const char *key, const char *value)
 		}
 	else
 		list->root = list->tail = np;
+}
+
+// add node to list
+// this stores wildcard matches
+static void list_addwc(list_t *list, const char *pattern)
+{
+	glob_t globbuf;
+
+	globbuf.gl_offs = 0;
+	if ( glob(pattern, GLOB_DOOFFS, NULL, &globbuf) == 0 ) {
+		for ( int i = 0; globbuf.gl_pathv[i]; i ++ ) {
+			const char *name = globbuf.gl_pathv[i];
+			if ( ! (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) )
+				list_add(list, name);
+			}
+		globfree(&globbuf);
+		}
 }
 
 // initialize list
@@ -322,15 +342,15 @@ static char *dof(const char *fmt, const char *data)
 }
 
 // read configuration files
-void	read_conf()
+static void	read_conf()
 {
 	FILE	*fp;
 	char	buf[LINE_MAX], *p, *key, *data;
 	char	file[PATH_MAX];
-	static	int _init;
+	static	int readconf_init = 0;
 
-	if ( _init ) return;
-	_init = 1;
+	if ( readconf_init ) return;
+	readconf_init = 1;
 	
 	for ( int i = 0; i < 2; i ++ ) {
 		switch ( i ) {
@@ -404,12 +424,25 @@ Written by Nicholas Christopoulos <mailto:nereus@freemail.gr>\n\
 ";
 
 // return a pointer to filename without the directory
-const char *namep(const char *file)
+static const char *namep(const char *file)
 {
 	const char *p;
 	if ( (p = strrchr(file, '/')) != NULL )
 		return p + 1;
 	return file;
+}
+
+// returns true if the "filename" has wildcards
+static int has_wildcards(const char *filename)
+{
+	const char *p = filename;
+	
+	while ( *p ) {
+		if ( *p == '*' || *p == '?' || *p == '[' )
+			return 1;
+		p ++;
+		}
+	return 0;
 }
 
 //
@@ -491,9 +524,13 @@ int main(int argc, char **argv)
 					strcmp(namep(argv[i]), ".") == 0 ||
 					strcmp(namep(argv[i]), "..") == 0
 					)
-					; // ignore them
-				else
-					list_add(&file_list, argv[i]);
+					;
+				else {
+					if ( has_wildcards(argv[i]) )
+						list_addwc(&file_list, argv[i]);
+					else
+						list_add(&file_list, argv[i]);
+					}
 				}
 			else
 				list_add(&cmds_list, argv[i]);
