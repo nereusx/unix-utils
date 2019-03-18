@@ -1,4 +1,5 @@
 *.o
 *~
+*.[1-8].gz
 dof/dof
 pathpp/path++
