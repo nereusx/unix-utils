@@ -20,13 +20,17 @@ clean:
 dof: dof.c
 	$(CC) $(CFLAGS) dof.c -o dof
 
-html: dof.1
-	groff dof.1 -Thtml -man > dof.1.html
+dof.1.gz: dof.man
+	cp dof.man dof.1
+	gzip dof.1
 
-pdf: dof.1
-	groff dof.1 -Tpdf -man > dof.1.pdf
+html: dof.man
+	groff dof.man -Thtml -man > dof.html
 
-install: dof
+pdf: dof.man
+	groff dof.man -Tpdf -man > dof.pdf
+
+install: dof dof.1.gz
 	install --mode=755 --owner=root --group=root -s dof $(INSTALL)
-	install --mode=755 --owner=root --group=root dof.1 $(MANDIR)
+	install --mode=755 --owner=root --group=root dof.1.gz $(MANDIR)
 

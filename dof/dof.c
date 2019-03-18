@@ -327,7 +327,11 @@ void	read_conf()
 	FILE	*fp;
 	char	buf[LINE_MAX], *p, *key, *data;
 	char	file[PATH_MAX];
+	static	int _init;
 
+	if ( _init ) return;
+	_init = 1;
+	
 	for ( int i = 0; i < 2; i ++ ) {
 		switch ( i ) {
 		case 0: strcpy(file, "/etc/dof.conf"); break;
@@ -412,7 +416,6 @@ const char *namep(const char *file)
 int main(int argc, char **argv)
 {
 	int		flags = 0, state = 0, exit_status = 0;
-	int		f_conf_init = 0;
 	node_t	*cur;
 	char	*cmds, *cmdbuf;
 	struct stat st;
@@ -453,12 +456,12 @@ int main(int argc, char **argv)
 				case 'v': puts(verss); return 1;
 				case '-':
 						// execute recipe
-						if ( !f_conf_init ) { read_conf(); f_conf_init = 1; }						
+						read_conf();
 						cur = rcpt_list.root;
 						while ( cur ) {
 							if ( strcmp(cur->str, argv[i]+2) == 0 ) {
 								char cmd[LINE_MAX];
-								snprintf(cmd, LINE_MAX, "dof -e %s", cur->data);
+								snprintf(cmd, LINE_MAX, "dof %s", cur->data);
 								return system(cmd);
 								}
 							cur = cur->next;
@@ -466,7 +469,7 @@ int main(int argc, char **argv)
 						return 1;
 				case 'l':
 						// list recipes
-						if ( !f_conf_init ) { read_conf(); f_conf_init = 1; }						
+						read_conf();
 						cur = rcpt_list.root;
 						while ( cur ) {
 							printf("%s: (%s)\n", cur->str, cur->data);

@@ -35,12 +35,12 @@ plain files only; directories, devices, etc are ignored.
 .TP
 .BR \-d
 directories only; plain-files, devices, etc are ignored.
-.TP
-.BR \-l
-print recipes (/etc/dof.conf, ~/.dof)
-.TP
-.BR \-\-\fIrecipe\fR
-execute recipe (ex: dof --to-ogg)
+\# .TP
+\# .BR \-l
+\# print recipes (/etc/dof.conf, ~/.dof)
+\# .TP
+\# .BR \-\-\fIrecipe\fR
+\# execute recipe (ex: dof --to-ogg)
 .TP
 .BR \-h
 help screen.
@@ -64,19 +64,19 @@ the extension without '.' prefix
 .TP
 .BR %%
 the character '%'.
-.TP
-.BR %(expr)
-string processing expression... not used yet.
-.SH FILES
-dof reads \fI/etc/dof.conf\fR and \fI~/.dof\fR files.
-These files contains recipes in form `name: parameters'.
-These recipes can later executed with \fB--\fIname\fR option.
-.PP
-Example:
-.EX
-	to-ogg: *.mp3 do ffmpeg -i %f %b.ogg
-	to-png: *.{jpg,gif} do convert %f %b.png
-.EE
+\# .TP
+\# .BR %(expr)
+\# string processing expression... not used yet.
+\# .SH FILES
+\# dof reads \fI/etc/dof.conf\fR and \fI~/.dof\fR files.
+\# These files contains recipes in form `name: parameters'.
+\# These recipes can later executed with \fB--\fIname\fR option.
+\# .PP
+\# Example:
+\# .EX
+\#	to-ogg: *.mp3 do ffmpeg -i %f %b.ogg
+\#	to-png: *.{jpg,gif} do convert %f %b.png
+\# .EE
 .SH NOTES
 .TP
 Items '.' and '..' are ignored.
