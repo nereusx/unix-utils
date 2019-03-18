@@ -494,7 +494,13 @@ int main(int argc, char **argv)
 						while ( cur ) {
 							if ( strcmp(cur->str, argv[i]+2) == 0 ) {
 								char cmd[LINE_MAX];
-								snprintf(cmd, LINE_MAX, "dof %s", cur->data);
+								char opt[64];
+								opt[0] = '\0';
+								if ( flags & 0x01 ) strcat(opt, "-e ");
+								if ( flags & 0x02 ) strcat(opt, "-f ");
+								if ( flags & 0x04 ) strcat(opt, "-p ");
+								if ( flags & 0x08 ) strcat(opt, "-d ");
+								snprintf(cmd, LINE_MAX, "dof %s %s", opt, cur->data);
 								return system(cmd);
 								}
 							cur = cur->next;
