@@ -513,7 +513,6 @@ int execute_indir(int flags)
 	DIR	*p_dir;
 	int exit_status = 0;
 	struct stat st;
-	char cwd[PATH_MAX];
 		
 	if ( (exit_status = execute(flags)) != 0 ) {
 		if ( (flags & 0x02) == 0 ) // not force-option
@@ -526,13 +525,14 @@ int execute_indir(int flags)
 			continue;
 		if ( stat(p_dirent->d_name, &st) == 0 ) {
 			if ( S_ISDIR(st.st_mode) ) {
-				getcwd(cwd, PATH_MAX);
 				if ( chdir(p_dirent->d_name) == 0 ) {
 					exit_status = execute_indir(flags);
-					chdir(cwd);
+					chdir("..");
 					if ( exit_status && (flags & 0x02) == 0 ) // not force-option
 						break;
 					}
+				else
+					fprintf(stderr, "change dir to %s failed.\n", p_dirent->d_name);					
 				}
 			}
 		}
