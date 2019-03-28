@@ -21,16 +21,17 @@ clean:
 $(APPNAME): pathpp.c
 	$(CC) $(CFLAGS) pathpp.c -o $(APPNAME)
 
-$(APPNAME).1: pathpp.man
+$(APPNAME).1.gz: pathpp.man
 	cp pathpp.man $(APPNAME).1
+	gzip -f $(APPNAME).1
 
-html: $(APPNAME).1
-	groff $(APPNAME).1 -Thtml -man > $(APPNAME).1.html
+html: pathpp.man
+	groff pathpp.man -Thtml -man > $(APPNAME).html
 
-pdf: $(APPNAME).1
-	groff $(APPNAME).1 -Tpdf -man > $(APPNAME).1.pdf
+pdf: pathpp.man
+	groff pathpp.man -Tpdf -man > $(APPNAME).pdf
 
-install: $(APPNAME) $(APPNAME).1
+install: $(APPNAME) $(APPNAME).1.gz
 	install --mode=755 --owner=root --group=root -s $(APPNAME) $(INSTALL)
-	install --mode=755 --owner=root --group=root $(APPNAME).1 $(MANDIR)
+	install --mode=755 --owner=root --group=root $(APPNAME).1.gz $(MANDIR)
 

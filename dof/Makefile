@@ -22,7 +22,7 @@ dof: dof.c
 
 dof.1.gz: dof.man
 	cp dof.man dof.1
-	gzip dof.1
+	gzip -f dof.1
 
 html: dof.man
 	groff dof.man -Thtml -man > dof.html
