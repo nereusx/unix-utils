@@ -391,13 +391,15 @@ static void	read_conf()
 #define APP_DESCR \
 "dof (do-for) run commands for each element of 'list'."
 
+#define APP_VER "1.1"
+
 static const char *usage = "\
 Usage: dof [list] do [commands]\n\
 "APP_DESCR"\n\
 \n\
 Options:\n\
 \t-e\texecute; dof displays what commands would be run, this option executes them.\n\
-\t-r\trecursive execute into sub-directories.\n\
+\t-r\trecursive execution of commands into sub-directories.\n\
 \t-f\tforce non-stop; dof stops on error, this option forces dof to ignore errors.\n\
 \t-p\tplain files only; directories, devices, etc are ignored.\n\
 \t-d\tdirectories only; plain files, devices, etc are ignored.\n\
@@ -415,7 +417,7 @@ Variables:\n\
 ";
 
 static const char *verss = "\
-dof version 1.00\n\
+dof version "APP_VER"\n\
 "APP_DESCR"\n\
 \n\
 Copyright (C) 2017 Free Software Foundation, Inc.\n\
@@ -448,7 +450,7 @@ static int has_wildcards(const char *filename)
 	return 0;
 }
 
-//	=== execute ===
+// execute
 int execute(int flags)
 {
 	char	*cmds, *cmdbuf;
@@ -506,7 +508,7 @@ int execute(int flags)
 	return exit_status;
 }
 
-//
+// execute the commands for each subdirectory
 int execute_indir(int flags)
 {
 	struct dirent *p_dirent;

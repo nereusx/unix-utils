@@ -10,4 +10,9 @@ A utility to cleanup the path from duplicated or non-exists directories.
 ## dof (do-for)
 A utility to run commands for each file/item of a list.
 
-58KB static-linked binary size
+87KB static-linked binary size
+
+## installation
+
+go to program's directory and
+use `make && make install`
