@@ -1,18 +1,5 @@
 /*
  * dof [file [file [...]] do command
- * if file = - then read from stdin
- * if command = - then read from stdin
- * -e = execute, default dof run in test mode (dryrun)
- * -f = force (no stop on error)
- * -p = regular files only
- * -d = directories only
- * %f = file
- * %b = basename
- * %d = dirname
- * %e = extension
- *
- * dof 1 2 3 do echo %f
- * dof *.txt do cp %f ${dir}/%b.%e \; chown root:root ${dir}/%b.%e
  *
  * Nicholas Christopoulos (nereus@freemail.gr)
  *
@@ -94,9 +81,16 @@ static void list_addpair(list_t *list, const char *key, const char *value)
 static void list_addwc(list_t *list, const char *pattern)
 {
 	glob_t globbuf;
+	int flags = GLOB_DOOFFS;
+	#ifdef GLOB_TILDE
+	flags |= GLOB_TILDE;
+	#endif
+	#ifdef GLOB_BRACE
+	flags |= GLOB_BRACE;
+	#endif
 
 	globbuf.gl_offs = 0;
-	if ( glob(pattern, GLOB_DOOFFS, NULL, &globbuf) == 0 ) {
+	if ( glob(pattern, flags, NULL, &globbuf) == 0 ) {
 		for ( int i = 0; globbuf.gl_pathv[i]; i ++ ) {
 			const char *name = globbuf.gl_pathv[i];
 			if ( ! (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) )
@@ -104,6 +98,26 @@ static void list_addwc(list_t *list, const char *pattern)
 			}
 		globfree(&globbuf);
 		}
+}
+
+// returns true if the "filename" has wildcards
+static int has_wildcards(const char *filename)
+{
+	const char *p = filename;
+	
+	while ( *p ) {
+		if ( *p == '*' || *p == '?' || *p == '['
+	#ifdef GLOB_TILDE
+			 || *p == '~'
+	#endif
+	#ifdef GLOB_BRACE
+			 || *p == '{'
+	#endif
+		   )
+			return 1;
+		p ++;
+		}
+	return 0;
 }
 
 // initialize list
@@ -435,19 +449,6 @@ static const char *namep(const char *file)
 	if ( (p = strrchr(file, '/')) != NULL )
 		return p + 1;
 	return file;
-}
-
-// returns true if the "filename" has wildcards
-static int has_wildcards(const char *filename)
-{
-	const char *p = filename;
-	
-	while ( *p ) {
-		if ( *p == '*' || *p == '?' || *p == '[' )
-			return 1;
-		p ++;
-		}
-	return 0;
 }
 
 // execute
