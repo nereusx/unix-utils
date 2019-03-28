@@ -7,7 +7,7 @@ dof \- (do-for) executes commands for each item of a list
 .SH SYNOPSIS
 \# .SY command; .OP \-efp...; .OP \-d cs; .OP \-f fam; ...; .RI [ parameter .\|.\|. ]; .YS;
 .SY dof
-.OP \-efp
+.OP \-efpr
 .OP \-l
 .OP \-h
 .OP \-v
@@ -26,6 +26,9 @@ read from stdin.
 .TP
 .BR \-e
 execute; \fIdof\fR displays what commands would be run, this option executes them.
+.TP
+.BR \-r
+recursive execution into subdirectories
 .TP
 .BR \-f
 force non-stop; \fIdof\fR stops on error (exit code != 0), this option forces \fIdof\fR to ignore them.

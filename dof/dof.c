@@ -27,6 +27,7 @@
 #include <string.h>
 #include <limits.h>
 #include <glob.h>
+#include <dirent.h>
 
 typedef struct s_node node_t;
 struct s_node {
@@ -44,6 +45,7 @@ struct s_list {
 static list_t file_list;
 static list_t cmds_list;
 static list_t rcpt_list;
+static list_t patt_list;
 
 #ifdef STRDUP
 // clone a string
@@ -395,6 +397,7 @@ Usage: dof [list] do [commands]\n\
 \n\
 Options:\n\
 \t-e\texecute; dof displays what commands would be run, this option executes them.\n\
+\t-r\trecursive execute into sub-directories.\n\
 \t-f\tforce non-stop; dof stops on error, this option forces dof to ignore errors.\n\
 \t-p\tplain files only; directories, devices, etc are ignored.\n\
 \t-d\tdirectories only; plain files, devices, etc are ignored.\n\
@@ -445,111 +448,28 @@ static int has_wildcards(const char *filename)
 	return 0;
 }
 
-//
-int main(int argc, char **argv)
+//	=== execute ===
+int execute(int flags)
 {
-	int		flags = 0, state = 0, exit_status = 0;
-	node_t	*cur;
 	char	*cmds, *cmdbuf;
+	node_t	*cur;
 	struct stat st;
-
-	list_init(&file_list);
-	list_init(&cmds_list);
-	list_init(&rcpt_list);
-	for ( int i = 1; i < argc; i ++ ) {
-		if ( argv[i][0] == '-' && state == 0 ) {
-
-			// one minus, read from stdin
-			if ( argv[i][1] == '\0' ) {
-				char buf[LINE_MAX];
-
-				while ( fgets(buf, LINE_MAX, stdin) )	{
-					if ( state == 0 ) {
-						if (
-							strcmp(namep(argv[i]), ".") == 0 ||
-							strcmp(namep(argv[i]), "..") == 0
-							)
-							; // ignore them
-						else
-							list_add(&file_list, buf);
-						}
-					else
-						list_add(&cmds_list, buf);
-					}
-				}
-
-			// check options
-			for ( int j = 1; argv[i][j]; j ++ ) {
-				switch ( argv[i][j] ) {
-				case 'e': flags |= 0x01; break;
-				case 'f': flags |= 0x02; break;
-				case 'p': flags |= 0x04; break;
-				case 'd': flags |= 0x08; break;
-				case 'h': puts(usage); return 1;
-				case 'v': puts(verss); return 1;
-				case '-':
-						// execute recipe
-						read_conf();
-						cur = rcpt_list.root;
-						while ( cur ) {
-							if ( strcmp(cur->str, argv[i]+2) == 0 ) {
-								char cmd[LINE_MAX];
-								char opt[64];
-								opt[0] = '\0';
-								if ( flags & 0x01 ) strcat(opt, "-e ");
-								if ( flags & 0x02 ) strcat(opt, "-f ");
-								if ( flags & 0x04 ) strcat(opt, "-p ");
-								if ( flags & 0x08 ) strcat(opt, "-d ");
-								snprintf(cmd, LINE_MAX, "dof %s %s", opt, cur->data);
-								return system(cmd);
-								}
-							cur = cur->next;
-							}
-						return 1;
-				case 'l':
-						// list recipes
-						read_conf();
-						cur = rcpt_list.root;
-						while ( cur ) {
-							printf("%s: (%s)\n", cur->str, cur->data);
-							cur = cur->next;
-							}
-						return 0;
-				default:
-					// error
-					puts("unknown option.");
-					return 1;
-					}
-				}
-			}
-		else if ( strcmp(argv[i], "do") == 0 && state == 0 )
-			state ++;
-		else {
-			if ( state == 0 ) {
-				if (
-					strcmp(namep(argv[i]), ".") == 0 ||
-					strcmp(namep(argv[i]), "..") == 0
-					)
-					;
-				else {
-					if ( has_wildcards(argv[i]) )
-						list_addwc(&file_list, argv[i]);
-					else
-						list_add(&file_list, argv[i]);
-					}
-				}
-			else
-				list_add(&cmds_list, argv[i]);
-			}
-		}
-
-	if ( state == 0 ) { // syntax error
-		puts("`do' keyword missing; run `dof -h' for help.");
-		return 1;
-		}
-
-	// execute
+	int exit_status = 0;
+	
 	cmds = list_to_string(&cmds_list, " ");
+
+	// select files
+	list_clear(&file_list);
+	cur = patt_list.root;
+	while ( cur ) {
+		if ( has_wildcards(cur->str) )
+			list_addwc(&file_list, cur->str);
+		else
+			list_add(&file_list, cur->str);
+		cur = cur->next;
+		}
+
+	// for each file
 	cur = file_list.root;
 	while ( cur ) {
 		if ( flags & 0x04 || flags & 0x08 ) { // file attribute check
@@ -582,10 +502,153 @@ int main(int argc, char **argv)
 		free(cmdbuf);
 		cur = cur->next;
 		}
+	
+	return exit_status;
+}
+
+//
+int execute_indir(int flags)
+{
+	struct dirent *p_dirent;
+	DIR	*p_dir;
+	int exit_status = 0;
+	struct stat st;
+	char cwd[PATH_MAX];
+		
+	if ( (exit_status = execute(flags)) != 0 ) {
+		if ( (flags & 0x02) == 0 ) // not force-option
+			return exit_status;
+		}
+	if ( (p_dir = opendir(".")) == NULL )
+		return exit_status;
+	while ( (p_dirent = readdir(p_dir)) != NULL ) {
+		if ( strcmp(p_dirent->d_name, ".") == 0 || strcmp(p_dirent->d_name, "..") == 0 )
+			continue;
+		if ( stat(p_dirent->d_name, &st) == 0 ) {
+			if ( S_ISDIR(st.st_mode) ) {
+				getcwd(cwd, PATH_MAX);
+				if ( chdir(p_dirent->d_name) == 0 ) {
+					exit_status = execute_indir(flags);
+					chdir(cwd);
+					if ( exit_status && (flags & 0x02) == 0 ) // not force-option
+						break;
+					}
+				}
+			}
+		}
+	closedir(p_dir);
+	return exit_status;
+}
+
+//
+int main(int argc, char **argv)
+{
+	int		flags = 0, state = 0, exit_status = 0;
+	node_t	*cur;
+
+	list_init(&file_list);
+	list_init(&cmds_list);
+	list_init(&rcpt_list);
+	list_init(&patt_list);
+	for ( int i = 1; i < argc; i ++ ) {
+		if ( argv[i][0] == '-' && state == 0 ) {
+
+			// one minus, read from stdin
+			if ( argv[i][1] == '\0' ) {
+				char buf[LINE_MAX];
+
+				while ( fgets(buf, LINE_MAX, stdin) )	{
+					if ( state == 0 ) {
+						if (
+							strcmp(namep(argv[i]), ".") == 0 ||
+							strcmp(namep(argv[i]), "..") == 0
+							)
+							; // ignore them
+						else
+							list_add(&file_list, buf);
+						}
+					else
+						list_add(&cmds_list, buf);
+					}
+				}
+
+			// check options
+			for ( int j = 1; argv[i][j]; j ++ ) {
+				switch ( argv[i][j] ) {
+				case 'e': flags |= 0x01; break;
+				case 'f': flags |= 0x02; break;
+				case 'p': flags |= 0x04; break;
+				case 'd': flags |= 0x08; break;
+				case 'r': flags |= 0x10; break;
+				case 'h': puts(usage); return 1;
+				case 'v': puts(verss); return 1;
+				case '-':
+						// execute recipe
+						read_conf();
+						cur = rcpt_list.root;
+						while ( cur ) {
+							if ( strcmp(cur->str, argv[i]+2) == 0 ) {
+								char cmd[LINE_MAX];
+								char opt[64];
+								opt[0] = '\0';
+								if ( flags & 0x01 ) strcat(opt, "-e ");
+								if ( flags & 0x02 ) strcat(opt, "-f ");
+								if ( flags & 0x04 ) strcat(opt, "-p ");
+								if ( flags & 0x08 ) strcat(opt, "-d ");
+								if ( flags & 0x10 ) strcat(opt, "-r ");
+								snprintf(cmd, LINE_MAX, "dof %s %s", opt, cur->data);
+								return system(cmd);
+								}
+							cur = cur->next;
+							}
+						return 1;
+				case 'l':
+						// list recipes
+						read_conf();
+						cur = rcpt_list.root;
+						while ( cur ) {
+							printf("%s: (%s)\n", cur->str, cur->data);
+							cur = cur->next;
+							}
+						return 0;
+				default:
+					// error
+					puts("unknown option.");
+					return 1;
+					}
+				}
+			}
+		else if ( strcmp(argv[i], "do") == 0 && state == 0 )
+			state ++;
+		else {
+			if ( state == 0 ) {
+				if (
+					strcmp(namep(argv[i]), ".") == 0 ||
+					strcmp(namep(argv[i]), "..") == 0
+					)
+					;
+				else 
+					list_add(&patt_list, argv[i]);
+				}
+			else
+				list_add(&cmds_list, argv[i]);
+			}
+		}
+
+	if ( state == 0 ) { // syntax error
+		puts("`do' keyword missing; run `dof -h' for help.");
+		return 1;
+		}
+
+	if ( flags & 0x10 )
+		exit_status = execute_indir(flags);
+	else
+		exit_status = execute(flags);
 
 	// cleanup
 	list_clear(&file_list);
 	list_clear(&cmds_list);
 	list_clear(&rcpt_list);
+	list_clear(&patt_list);
 	return exit_status;
 }
