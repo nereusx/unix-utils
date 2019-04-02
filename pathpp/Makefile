@@ -35,3 +35,5 @@ install: $(APPNAME) $(APPNAME).1.gz
 	install --mode=755 --owner=root --group=root -s $(APPNAME) $(INSTALL)
 	install --mode=755 --owner=root --group=root $(APPNAME).1.gz $(MANDIR)
 
+uninstall:
+	rm $(INSTALL)/$(APPNAME) $(MANDIR)/$(APPNAME).1.gz
