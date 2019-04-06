@@ -52,6 +52,7 @@ help screen.
 version and license information.
 .SH VARIABLES
 In the `commands' you can use several program's variables. Variables are recognized by prefix '%'.
+Variables and its modifiers can be included inside '{' '}' block or '(' ')' block.
 .TP
 .BR %f
 the full string (or filename)
