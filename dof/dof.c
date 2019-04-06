@@ -214,46 +214,69 @@ static char *extname(const char *source)
 }
 
 //
-static char *execblock(const char *source, const char *str)
+static const char *exec_expr(const char *source, const char *data)
 {
-	static char buf[PATH_MAX];
-	char		*b;
-	const char	*p;
-
-	strcpy(buf, str);
-	p = source;
-	b = buf;
-
-	// TODO: parse whole string expression,
-	//		use str as input, buf as output
-
-	// parser
-/*
-	while ( *p == ' ' || *p == '\t' ) p ++;
-	if ( isalpha(*p) ) {
-		char kw[256], *k;
-
-		// read the keyword
-		k = kw;
-		while ( *p ) {
-			if ( !isalpha(*p) )
-				break;
-			*k ++ = *p ++;
-			}
-		*k = '\0';
-
-		// put 'p' to point in paramters
-		while ( *p == ' ' || *p == '\t' ) p ++;
-
-		// execute it
-		if ( strcmp(kw, "replace") == 0 ) {
-			// get string 1 (what)
-			// get string 2 (with)
-			// replace all occurences of 'what' with 'with'
-			}
-		}
-*/
+	static char buf[LINE_MAX];
+	char args[LINE_MAX], *tp;
+	const char *p = source, *next;
 	
+	buf[0] = '\0';
+	switch ( *p ) {
+	case 'f':		// full pathname
+		strcpy(buf, data);
+		break;
+	case 'b':		// basename (no directory, no extension)
+		strcpy(buf, basename(data));
+		break;
+	case 'd':		// directory name
+		strcpy(buf, dirname(data));
+		break;
+	case 'e':		// extension
+		strcpy(buf, extname(data));
+		break;
+	case '%':		// none
+		strcpy(buf, "%");
+		break;
+	default:
+		fprintf(stderr, "unknown element `%%%c'\n", *p);
+		return buf;
+		}
+	
+	// modifiers
+	p ++;
+	while ( p && *p == ':' ) {
+		p ++;
+		next = strchr(p, ':');
+		if ( next )	{
+			strcpy(args, p+1);
+			tp = strchr(args, ':');
+			if ( tp )
+				*tp = '\0';
+			}
+		else
+			strcpy(args, p+1);
+			
+		switch ( *p ) {
+		case 'l':
+			tp = strchr(buf, *(p+1));
+			if ( tp )
+				*tp = '\0';
+			break;
+		case 'r':
+			tp = strrchr(buf, *(p+1));
+			if ( tp )
+				*tp = '\0';
+			break;
+		case 'i':
+			tp = strstr(buf, args);
+			if ( tp )
+				*tp = '\0';
+			break;
+			};
+			
+		p = next;
+		}
+
 	return buf;
 }
 
@@ -263,7 +286,7 @@ static char *dof(const char *fmt, const char *data)
 {
 	const char *p, *v;
 	char *d, *dest;
-	int inside_sq = 0, count = 0, maxlen, level;
+	int inside_sq = 0, count = 0, maxlen;
 
 	// calculate a maximum length for the returned buffer
 	p = fmt;
@@ -298,50 +321,28 @@ static char *dof(const char *fmt, const char *data)
 		// translate % expressions
 		if ( *p == '%' ) {
 			char block[LINE_MAX], *bp;
+			char mark = ' ';
 			
 			p ++;
-			switch ( *p ) {
-			case 'f':		// full pathname
-				v = data;
-				while ( *v )	*d ++ = *v ++;
-				break;
-			case 'b':		// basename (no directory, no extension)
-				v = basename(data);
-				while ( *v )	*d ++ = *v ++;
-				break;
-			case 'd':		// directory name
-				v = dirname(data);
-				while ( *v )	*d ++ = *v ++;
-				break;
-			case 'e':		// extension
-				v = extname(data);
-				while ( *v )	*d ++ = *v ++;
-				break;
-			case '(':		// block
-				p ++;
-				bp = block;
-				level = 0;
-				while ( *p ) {
-					if ( *p == ')' ) {
-						level --;
-						if ( level < 0 )
-							break;
-						}
-					else if ( *p == '(' )
-						level ++;
-					*bp ++ = *p ++;
-					}
-				*bp = '\0';
-				v = execblock(block, data);
-				while ( *v )	*d ++ = *v ++;
-				break;			
-			case '%':		// none
-				*d ++ = *p;
-				break;
-			default:
-				fprintf(stderr, "unknown element `%%%c'\n", *p);
+			mark = *p;
+			if ( mark == '{' )
+				{ mark = '}'; p ++; }
+			else if ( mark == '(' )
+				{ mark = ')'; p ++; }
+			else
+				mark = ' ';
+
+			bp = block;
+			while ( *p ) {
+				if ( *p == mark )
+					break;
+				*bp ++ = *p ++;
 				}
+			*bp = '\0';
+			v = exec_expr(block, data);
+			while ( *v )	*d ++ = *v ++;
 			}
+			
 		// not a command? just copy
 		else
 			*d ++ = *p;
@@ -405,7 +406,7 @@ static void	read_conf()
 #define APP_DESCR \
 "dof (do-for) run commands for each element of 'list'."
 
-#define APP_VER "1.1"
+#define APP_VER "1.2"
 
 static const char *usage = "\
 Usage: dof [list] do [commands]\n\
@@ -428,6 +429,12 @@ Variables:\n\
 \t%b\tthe basename (no directory, no extension)\n\
 \t%d\tthe directory (without trailing '/')\n\
 \t%e\tthe extension (without '.')\n\
+\n\
+Modifiers:\n\
+modifiers defined by ':' that follows a variable and modifies the result string. You can have unlimited number of modifiers.\n\
+\tlc\treturns the string until the the first occurence of 'c'\n\
+\trc\treturns the string until the last occurence of 'c'\n\
+\tis\treturns the string until the occurence of string 's'\n\
 ";
 
 static const char *verss = "\

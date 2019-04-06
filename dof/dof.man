@@ -1,7 +1,7 @@
 \# exec: groff dof.1 -Tascii -man | less
 \#
 \# .TH cmd-name section [date [version [page-descr]]]
-.TH dof 1 "12 Mar 2019" "v1.1" "User Commands"
+.TH dof 1 "6 Apr 2019" "v1.2" "User Commands"
 .SH NAME
 dof \- (do-for) executes commands for each item of a list
 .SH SYNOPSIS
@@ -67,6 +67,18 @@ the extension without '.' prefix
 .TP
 .BR %%
 the character '%'.
+.SH MODIFIERS
+Modifiers defined by ':' that follows a variable and modifies the result string.
+You can have unlimited number of modifiers.
+.TP
+.BR l\fIc\fR
+returns the string until the the first occurence of character 'c'.
+.TP
+.BR r\fIc\fR
+returns the string until the last occurence of character 'c'.
+.TP
+.BR i\fIs\fR
+returns the string until the occurence of string 's'.
 \# .TP
 \# .BR %(expr)
 \# string processing expression... not used yet.
