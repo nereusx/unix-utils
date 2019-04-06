@@ -217,7 +217,7 @@ static char *extname(const char *source)
 static const char *exec_expr(const char *source, const char *data)
 {
 	static char buf[LINE_MAX];
-	char args[LINE_MAX], *tp;
+	char args[LINE_MAX], *tp, *ap;
 	const char *p = source, *next;
 	
 	buf[0] = '\0';
@@ -255,17 +255,24 @@ static const char *exec_expr(const char *source, const char *data)
 			}
 		else
 			strcpy(args, p+1);
+		ap = args;
 			
 		switch ( *p ) {
 		case 'l':
-			tp = strchr(buf, *(p+1));
-			if ( tp )
-				*tp = '\0';
+			while ( *ap ) {
+				tp = strchr(buf, *ap);
+				if ( tp )
+					*tp = '\0';
+				ap ++;
+				}
 			break;
 		case 'r':
-			tp = strrchr(buf, *(p+1));
-			if ( tp )
-				*tp = '\0';
+			while ( *ap ) {
+				tp = strrchr(buf, *ap);
+				if ( tp )
+					*tp = '\0';
+				ap ++;
+				}
 			break;
 		case 'i':
 			tp = strstr(buf, args);
