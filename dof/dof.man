@@ -72,10 +72,10 @@ the character '%'.
 Modifiers defined by ':' that follows a variable and modifies the result string.
 You can have unlimited number of modifiers.
 .TP
-.BR l\fIc\fR
+.BR l\fIc...\fR
 returns the string until the the first occurence of character 'c'.
 .TP
-.BR r\fIc\fR
+.BR r\fIc...\fR
 returns the string until the last occurence of character 'c'.
 .TP
 .BR i\fIs\fR
