@@ -39,6 +39,11 @@ public:
 			}
 		return *this;
 		}
+	str& set(const char *newstr) {
+		free(s);
+		s = strdup(newstr);
+		return *this;
+		}
 	str& chop(char ch = '\n') {
 		if ( !empty() ) {
 			int	i = len();
@@ -85,7 +90,7 @@ public:
 		intptr_t sf_l = strlen(search_for);
 		intptr_t rw_l = strlen(replace_with);
 		intptr_t diff_l, remain_l;
-		char *pos, *ns;
+		char *pos = s, *ns;
 
 		do {
 			if ( (pos = strstr(pos, search_for)) != NULL ) {
@@ -105,8 +110,46 @@ public:
 			} while ( pos );
 		return *this;
 		}
+		
+	friend str replace(const char *source, const char *search_for, const char *replace_with);
 	};
 
+// remove spaces from left
+str	ltrim(const char *s)
+{
+	const char *p = s;
+	while ( *p == ' ' || *p == '\t' )	p ++;
+	if ( p > s )
+		return str(p);
+	return str(s);
+}
+
+// remove spaces from right
+str rtrim(const char *s)
+{
+	if ( s && *s ) {
+		str ns(s);
+		int i = ns.len() - 1;
+		
+		for ( ; i >= 0; i -- ) {
+			if ( ns[i] == ' ' || ns[i] == '\t' )
+				ns[i] = '\0';
+			else
+				break;
+			}
+		return ns;
+		}
+	return str(s);
+}
+
+// remove spaces (space & tab) from the begin and end of the string
+str trim(const char *s)
+{
+	return rtrim(ltrim(s).cptr());
+}
+
+// Returns part of the string 's', starting from 'start' with lenght 'clen'
+//
 // start >= 0 starts from the beginning
 // start <  0 starts from the end, -1 = the last character
 // clen  >  0 copy clen characters
@@ -132,7 +175,50 @@ str substr(const char *s, int start, int clen = 0)
 	return substr(s, start, clen);
 }
 
+// replace the characters of string src
+str	replace(const char *src, char c1, char c2)
+{
+	str  ns(src);
+	char *p = ns.ptr();
+	while ( *p ) {
+		if ( *p == c1 )
+			*p = c2;
+		p ++;
+		}
+	return ns;
+}
+
+// replace string 'search_for' with 'replace_with'
+str replace(const char *source, const char *search_for, const char *replace_with)
+{
+	str		 rs(source);
+	intptr_t sf_l = strlen(search_for);
+	intptr_t rw_l = strlen(replace_with);
+	intptr_t diff_l, remain_l;
+	char *pos = rs.s, *ns;
+
+	do {
+		if ( (pos = strstr(pos, search_for)) != NULL ) {
+			diff_l = pos - rs.s;
+			remain_l = strlen(pos + sf_l);
+			ns = (char *) malloc(diff_l + rw_l + remain_l + 1);
+			
+			memcpy(ns, rs.s, diff_l);
+			memcpy(ns + diff_l, replace_width, rw_l);
+			memcpy(ns + diff_l + rw_l, pos + sf_l, remain_l + 1);
+
+			// exchange
+			free(rs.s);
+			rs.s = ns;
+			pos = rs.s + diff_l + rw_len;
+			}
+		} while ( pos );
+	return rs;
+}
+
+//
 int		split(const char *source, vector<str> &items, const char *sep = ';');
+//
 void	join(const char *source, const vector<str> &items, const char *sep = ';');
 
 
