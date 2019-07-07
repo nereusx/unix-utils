@@ -55,7 +55,7 @@ public:
 	str& ltrim() {
 		char *p = s;
 		while ( *p == ' ' || *p == '\t' )	p ++;
-		if ( p > s )
+		if ( p != s )
 			strcpy(s, p);
 		return *this;
 		}
@@ -119,7 +119,7 @@ str	ltrim(const char *s)
 {
 	const char *p = s;
 	while ( *p == ' ' || *p == '\t' )	p ++;
-	if ( p > s )
+	if ( p != s )
 		return str(p);
 	return str(s);
 }
@@ -217,8 +217,47 @@ str replace(const char *source, const char *search_for, const char *replace_with
 }
 
 //
-int		split(const char *source, vector<str> &items, const char *sep = ';');
-//
-void	join(const char *source, const vector<str> &items, const char *sep = ';');
+int		split(const char *source, vector<str> &list, const char *sep)
+{
+	const char *p = source;
+	char *dest, *d;
+
+	dest = (char *) malloc(strlen(source) + 1);
+	d = dest;
+	while ( *p ) {
+		if ( strchr(sep, *p) ) {
+			*d = '\0';
+			d = dest;
+			list.push_back(dest);
+			}
+		else
+			*d ++ = *p;
+		p ++;
+		}
+	if ( d != dest ) {
+		*d = '\0';
+		list.push_back(dest);
+		}
+	free(dest);
+	return list.size();
+}
+
+// joins strings
+str join(const vector<str> &list, const char *sep = " ")
+{
+	str	rs;
+	vector<str>::const_iterator *cit = list.begin();
+	if ( cit != list.end() ) {
+		do {
+			rs.append(cit->first);
+			cit ++;
+			if ( cit == list.end() )
+				break;
+			rs.append(sep);
+			} while ( 1 );
+		}
+	return rs;
+}
+
 
 
