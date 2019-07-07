@@ -28,7 +28,8 @@ public:
 	inline char& at(int index)
 		{ return p[index]; }
 	str& alloc(int newsize) {
-		s = (char *) realloc(s, newsize));
+		if ( newsize > len() )
+			s = (char *) realloc(s, newsize));
 		return *this;
 		}
 	str& append(const char *source) {
@@ -47,13 +48,10 @@ public:
 		return *this;
 		}
 	str& ltrim() {
-		char *p = s, *d = s;
+		char *p = s;
 		while ( *p == ' ' || *p == '\t' )	p ++;
-		if ( p != s ) {
-			while ( *p )
-				*d ++ = *p ++;
-			*d = '\0';
-			}
+		if ( p > s )
+			strcpy(s, p);
 		return *this;
 		}
 	str& rtrim() {
@@ -69,31 +67,7 @@ public:
 		return *this;
 		}
 	str& trim()
-		{ return rtrim().ltrim(); }
-
-	// start >= 0 starts from the beginning
-	// start <  0 starts from the end, -1 = the last character
-	// clen  >  0 copy clen characters
-	// clen  <  0 copy clen characters backward
-	str substr(int start, int clen = 0) const {
-		int	ln = len();
-		if ( start < 0 )  start = ln - start;
-		if ( start < 0 )  start = 0;
-		if ( start >= ln )	return str("");
-		if ( clen == 0 )	return str(s+start);
-		if ( clen > 0 ) {
-			// copy min(clen,ln-start)
-			int n = min(clen, ln - start);
-			str ns = str(s+start);
-			ns.at(n) = '\0';
-			return ns;
-			}
-		// copy backward, start -= clen
-		clen = -clen;
-		start -= clen;
-		if ( start < 0 )  start = 0;
-		return substr(start, clen);
-		}
+		{ return ltrim().rtrim(); }
 
 	//
 	str& replace(char c1, char c2) {
@@ -101,13 +75,63 @@ public:
 		while ( *p ) {
 			if ( *p == c1 )
 				*p = c2;
-			p++;
+			p ++;
 			}
+		return *this;
+		}
+
+	//
+	str& replace(const char *search_for, const char *replace_with) {
+		intptr_t sf_l = strlen(search_for);
+		intptr_t rw_l = strlen(replace_with);
+		intptr_t diff_l, remain_l;
+		char *pos, *ns;
+
+		do {
+			if ( (pos = strstr(pos, search_for)) != NULL ) {
+				diff_l = pos - s;
+				remain_l = strlen(pos + sf_l);
+				ns = (char *) malloc(diff_l + rw_l + remain_l + 1);
+				
+				memcpy(ns, s, diff_l);
+				memcpy(ns + diff_l, replace_width, rw_l);
+				memcpy(ns + diff_l + rw_l, pos + sf_l, remain_l + 1);
+
+				// exchange
+				free(s);
+				s = ns;
+				pos = s + diff_l + rw_len;
+				}
+			} while ( pos );
 		return *this;
 		}
 	};
 
-str		replace(const char *source. const char *swhat, const char *swith);
+// start >= 0 starts from the beginning
+// start <  0 starts from the end, -1 = the last character
+// clen  >  0 copy clen characters
+// clen  <  0 copy clen characters backward
+str substr(const char *s, int start, int clen = 0)
+{
+	intptr_t ln = len();
+	if ( start < 0 )  start = ln - start;
+	if ( start < 0 )  start = 0;
+	if ( start >= ln )	return str("");
+	if ( clen == 0 )	return str(s + start);
+	if ( clen > 0 ) {
+		// copy min(clen,ln-start)
+		intptr_t n = min(clen, ln - start);
+		str ns = str(s + start);
+		ns.at(n) = '\0';
+		return ns;
+		}
+	// copy backward, start -= clen
+	clen = -clen;
+	start -= clen;
+	if ( start < 0 )  start = 0;
+	return substr(s, start, clen);
+}
+
 int		split(const char *source, vector<str> &items, const char *sep = ';');
 void	join(const char *source, const vector<str> &items, const char *sep = ';');
 
