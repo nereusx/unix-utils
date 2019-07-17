@@ -26,16 +26,7 @@ public:
 	inline str()			{ s = (char *) malloc(16); *s = '\0'; }
 	inline str(const char *source)	{ s = strdup(source); }
 	inline str(const str &source)	{ s = strdup(source.cptr()); }
-	str(int num) {
-		s = (char *) malloc(16);
-		if ( snprintf(s, 16, "%d", num) < 0 )
-			*s = '\0';
-		}
-	str(double num) {
-		s = (char *) malloc(16);
-		if ( snprintf(s, 16, "%f", num) < 0 )
-			*s = '\0';
-		}
+	inline str(size_t sz)	{ s = (char *) malloc(sz); *s = '\0'; }
 	virtual ~str()					{ free(s); }
 
 	// get the pointer
@@ -45,14 +36,21 @@ public:
 	inline operator char*()				{ return s; }
 	
 	//
-	inline int len() const				{ return strlen(s); }
+	inline size_t len() const			{ return strlen(s); }
 	inline void clear()					{ *s = '\0'; }
 	inline bool empty() const			{ return (*s == '\0'); }
 	inline char c_at(size_t index) const { return s[index]; }
 	inline char& at(size_t index)		{ return s[index]; }
-	str& alloc(int newsize) {
+	str& resize(size_t newsize) {
 		if ( newsize > len() )
 			s = (char *) realloc(s, newsize);
+		else if ( newsize )
+			s[newsize] = '\0';
+		else { // newsize == 0
+			free(s);
+			s = (char *) malloc(16);
+			*s = '\0';
+			}
 		return *this;
 		}
 		
@@ -307,6 +305,33 @@ str replace(const char *source, const char *search_for, const char *replace_with
 			pos = rs.s + diff_l + rw_l;
 			}
 		} while ( pos );
+	return rs;
+}
+
+//
+str format(const char *fmt, ...)
+{
+	int size = 0;
+	char *p = NULL;
+	va_list ap;
+	str	rs;
+
+	// determine required size
+	va_start(ap, fmt);
+	size = vsnprintf(p, size, fmt, ap);
+	va_end(ap);
+	if ( size < 0 ) return rs;
+		
+	// allocate memory
+	size ++; // for '\0'
+	rs.resize(size);
+	
+	// print it
+	va_start(ap, fmt);
+	size = vsnprintf(rs.ptr(), size, fmt, ap);
+	va_end(ap);
+	if ( size < 0 ) // error!
+		rs.clear();
 	return rs;
 }
 
