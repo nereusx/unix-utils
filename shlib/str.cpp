@@ -1,5 +1,21 @@
+/*
+ * string class
+ */
+ 
 #include <cstdio>
-#include <string>
+#include <climits>
+#include <cctype>
+#include <cstring>
+#include <memory>
+#include <algorithm>
+#include <vector>
+#include <list>
+
+#ifndef MINMAX_T
+	#define MIN(a,b)	((a<b)?a:b)
+	#define MAX(a,b)	((a>b)?a:b)
+	#define MINMAX_T
+#endif
 
 class str {
 private:
@@ -26,12 +42,13 @@ public:
 	inline bool empty() const
 		{ return (*s == '\0'); }
 	inline char& at(int index)
-		{ return p[index]; }
+		{ return s[index]; }
 	str& alloc(int newsize) {
 		if ( newsize > len() )
-			s = (char *) realloc(s, newsize));
+			s = (char *) realloc(s, newsize);
 		return *this;
 		}
+		
 	str& append(const char *source) {
 		if ( source ) {
 			s = (char *) realloc(s, len() + strlen(source) + 1);
@@ -39,11 +56,30 @@ public:
 			}
 		return *this;
 		}
+	inline str& append(const str& src)
+		{ return append(src.cptr()); }
+		
 	str& set(const char *newstr) {
 		free(s);
 		s = strdup(newstr);
 		return *this;
 		}
+	inline str& set(const str& newstr)
+		{ return set(newstr.cptr()); }
+		
+	inline str& operator= (const str& src)
+		{ set(src.cptr()); return *this; }
+	inline str& operator= (const char *src)
+		{ set(src); return *this; }
+	inline str& operator+= (const str& src)
+		{ return append(src.cptr()); }
+	inline str& operator+= (const char *src)
+		{ return append(src); }
+	inline const char& operator[] (size_t pos) const
+		{ return s[pos]; }
+	inline char& operator[] (size_t pos)
+		{ return s[pos]; }
+
 	str& chop(char ch = '\n') {
 		if ( !empty() ) {
 			int	i = len();
@@ -73,6 +109,12 @@ public:
 		}
 	str& trim()
 		{ return ltrim().rtrim(); }
+		
+	//
+	inline int toInt() const
+		{ return atoi(s); }
+	inline float toFloat() const
+		{ return atof(s); }
 
 	//
 	str& replace(char c1, char c2) {
@@ -99,13 +141,13 @@ public:
 				ns = (char *) malloc(diff_l + rw_l + remain_l + 1);
 				
 				memcpy(ns, s, diff_l);
-				memcpy(ns + diff_l, replace_width, rw_l);
+				memcpy(ns + diff_l, replace_with, rw_l);
 				memcpy(ns + diff_l + rw_l, pos + sf_l, remain_l + 1);
 
 				// exchange
 				free(s);
 				s = ns;
-				pos = s + diff_l + rw_len;
+				pos = s + diff_l + rw_l;
 				}
 			} while ( pos );
 		return *this;
@@ -113,6 +155,19 @@ public:
 		
 	friend str replace(const char *source, const char *search_for, const char *replace_with);
 	};
+
+//
+typedef std::list<str>			strlist;
+typedef strlist::iterator		strlist_iterator;
+typedef strlist::const_iterator	strlist_const_iterator;
+
+//
+str operator+ (const str& lhs, const char *rhs)
+{ str x(lhs); x.append(rhs); return x; }
+
+//
+str operator+ (const char *lhs, const str& rhs)
+{ str x(lhs); x.append(rhs); return x; }
 
 // remove spaces from left
 str	ltrim(const char *s)
@@ -156,14 +211,14 @@ str trim(const char *s)
 // clen  <  0 copy clen characters backward
 str substr(const char *s, int start, int clen = 0)
 {
-	intptr_t ln = len();
+	intptr_t ln = strlen(s);
 	if ( start < 0 )  start = ln - start;
 	if ( start < 0 )  start = 0;
 	if ( start >= ln )	return str("");
 	if ( clen == 0 )	return str(s + start);
 	if ( clen > 0 ) {
 		// copy min(clen,ln-start)
-		intptr_t n = min(clen, ln - start);
+		intptr_t n = MIN(clen, ln - start);
 		str ns = str(s + start);
 		ns.at(n) = '\0';
 		return ns;
@@ -204,20 +259,20 @@ str replace(const char *source, const char *search_for, const char *replace_with
 			ns = (char *) malloc(diff_l + rw_l + remain_l + 1);
 			
 			memcpy(ns, rs.s, diff_l);
-			memcpy(ns + diff_l, replace_width, rw_l);
+			memcpy(ns + diff_l, replace_with, rw_l);
 			memcpy(ns + diff_l + rw_l, pos + sf_l, remain_l + 1);
 
 			// exchange
 			free(rs.s);
 			rs.s = ns;
-			pos = rs.s + diff_l + rw_len;
+			pos = rs.s + diff_l + rw_l;
 			}
 		} while ( pos );
 	return rs;
 }
 
 //
-int		split(const char *source, vector<str> &list, const char *sep)
+int split(const char *source, strlist &lst, const char *sep)
 {
 	const char *p = source;
 	char *dest, *d;
@@ -228,7 +283,7 @@ int		split(const char *source, vector<str> &list, const char *sep)
 		if ( strchr(sep, *p) ) {
 			*d = '\0';
 			d = dest;
-			list.push_back(dest);
+			lst.push_back(dest);
 			}
 		else
 			*d ++ = *p;
@@ -236,28 +291,27 @@ int		split(const char *source, vector<str> &list, const char *sep)
 		}
 	if ( d != dest ) {
 		*d = '\0';
-		list.push_back(dest);
+		lst.push_back(dest);
 		}
 	free(dest);
-	return list.size();
+	return lst.size();
 }
 
 // joins strings
-str join(const vector<str> &list, const char *sep = " ")
+str join(const strlist &lst, const char *sep = " ")
 {
 	str	rs;
-	vector<str>::const_iterator *cit = list.begin();
-	if ( cit != list.end() ) {
+	strlist_const_iterator cit = lst.begin();
+	if ( cit != lst.end() ) {
 		do {
-			rs.append(cit->first);
+			rs.append(*cit);
 			cit ++;
-			if ( cit == list.end() )
+			if ( cit == lst.end() )
 				break;
 			rs.append(sep);
 			} while ( 1 );
 		}
 	return rs;
 }
-
 
 
