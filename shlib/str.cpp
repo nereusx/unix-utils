@@ -6,6 +6,7 @@
 #include <climits>
 #include <cctype>
 #include <cstring>
+#include <cstdarg>
 #include <memory>
 #include <algorithm>
 #include <vector>
@@ -22,27 +23,33 @@ private:
 	char	*s;
 	
 public:
-	inline str()
-		{ s = (char *) malloc(16); *s = '\0'; }
-	inline str(const char *source)
-		{ s = strdup(source); }
-	inline str(const str &source)
-		{ s = strdup(source.cptr()); }
-	virtual ~str()
-		{ free(s); }
+	inline str()			{ s = (char *) malloc(16); *s = '\0'; }
+	inline str(const char *source)	{ s = strdup(source); }
+	inline str(const str &source)	{ s = strdup(source.cptr()); }
+	str(int num) {
+		s = (char *) malloc(16);
+		if ( snprintf(s, 16, "%d", num) < 0 )
+			*s = '\0';
+		}
+	str(double num) {
+		s = (char *) malloc(16);
+		if ( snprintf(s, 16, "%f", num) < 0 )
+			*s = '\0';
+		}
+	virtual ~str()					{ free(s); }
+
+	// get the pointer
+	inline const char *cptr() const		{ return s; }
+	inline operator const char*() const	{ return s; }
+	inline char *ptr()					{ return s; }
+	inline operator char*()				{ return s; }
 	
-	inline const char *cptr() const
-		{ return s; }
-	inline char *ptr()
-		{ return s; }
-	inline int len() const
-		{ return strlen(s); }
-	inline void clear()
-		{ *s = '\0'; }
-	inline bool empty() const
-		{ return (*s == '\0'); }
-	inline char& at(int index)
-		{ return s[index]; }
+	//
+	inline int len() const				{ return strlen(s); }
+	inline void clear()					{ *s = '\0'; }
+	inline bool empty() const			{ return (*s == '\0'); }
+	inline char c_at(size_t index) const { return s[index]; }
+	inline char& at(size_t index)		{ return s[index]; }
 	str& alloc(int newsize) {
 		if ( newsize > len() )
 			s = (char *) realloc(s, newsize);
@@ -56,30 +63,43 @@ public:
 			}
 		return *this;
 		}
-	inline str& append(const str& src)
-		{ return append(src.cptr()); }
+	inline str& append(const str& src)		{ return append(src.cptr()); }
 		
 	str& set(const char *newstr) {
 		free(s);
 		s = strdup(newstr);
 		return *this;
 		}
-	inline str& set(const str& newstr)
-		{ return set(newstr.cptr()); }
+	inline str& set(const str& newstr)			{ return set(newstr.cptr()); }
+	str& setfmt(const char *fmt, ...)	{
+		int size = 0;
+		char *p = NULL;
+		va_list ap;
+		// determine required size
+		va_start(ap, fmt);
+		size = vsnprintf(p, size, fmt, ap);
+		va_end(ap);
+		if ( size < 0 ) return *this;
+		// allocate memory
+		size ++; // for '\0'
+		p = (char *) malloc(size);
+		// print it
+		va_start(ap, fmt);
+		size = vsnprintf(p, size, fmt, ap);
+		va_end(ap);
+		//
+		if ( size < 0 ) free(p);
+		else { free(s); s = p; }
+		return *this;
+		}
 		
-	inline str& operator= (const str& src)
-		{ set(src.cptr()); return *this; }
-	inline str& operator= (const char *src)
-		{ set(src); return *this; }
-	inline str& operator+= (const str& src)
-		{ return append(src.cptr()); }
-	inline str& operator+= (const char *src)
-		{ return append(src); }
-	inline const char& operator[] (size_t pos) const
-		{ return s[pos]; }
-	inline char& operator[] (size_t pos)
-		{ return s[pos]; }
-
+	inline str& operator= (const str& src)		{ set(src.cptr()); return *this; }
+	inline str& operator= (const char *src)		{ set(src); return *this; }
+	inline str& operator+= (const str& src)		{ return append(src.cptr()); }
+	inline str& operator+= (const char *src)	{ return append(src); }
+	inline const char& operator[] (size_t pos) const { return s[pos]; }
+	inline char& operator[] (size_t pos)		{ return s[pos]; }
+	
 	str& chop(char ch = '\n') {
 		if ( !empty() ) {
 			int	i = len();
@@ -111,10 +131,8 @@ public:
 		{ return ltrim().rtrim(); }
 		
 	//
-	inline int toInt() const
-		{ return atoi(s); }
-	inline float toFloat() const
-		{ return atof(s); }
+	inline int toInt() const		{ return atoi(s); }
+	inline float toFloat() const	{ return atof(s); }
 
 	//
 	str& replace(char c1, char c2) {
@@ -162,12 +180,33 @@ typedef strlist::iterator		strlist_iterator;
 typedef strlist::const_iterator	strlist_const_iterator;
 
 //
-str operator+ (const str& lhs, const char *rhs)
-{ str x(lhs); x.append(rhs); return x; }
+str operator+ (const str& lhs, const char *rhs)			{ str x(lhs); x.append(rhs); return x; }
+str operator+ (const char *lhs, const str& rhs)			{ str x(lhs); x.append(rhs); return x; }
 
 //
-str operator+ (const char *lhs, const str& rhs)
-{ str x(lhs); x.append(rhs); return x; }
+inline bool operator== (const str& lhs, const str& rhs)		{ return (strcmp(lhs, rhs) == 0); }
+inline bool operator== (const char*   lhs, const str& rhs)	{ return (strcmp(lhs, rhs) == 0); }
+inline bool operator== (const str& lhs, const char*   rhs)	{ return (strcmp(lhs, rhs) == 0); }
+	
+inline bool operator!= (const str& lhs, const str& rhs)		{ return (strcmp(lhs, rhs) != 0); }
+inline bool operator!= (const char*   lhs, const str& rhs)	{ return (strcmp(lhs, rhs) != 0); }
+inline bool operator!= (const str& lhs, const char*   rhs)	{ return (strcmp(lhs, rhs) != 0); }
+
+inline bool operator<  (const str& lhs, const str& rhs)		{ return (strcmp(lhs, rhs) < 0); }
+inline bool operator<  (const char*   lhs, const str& rhs)	{ return (strcmp(lhs, rhs) < 0); }
+inline bool operator<  (const str& lhs, const char*   rhs)	{ return (strcmp(lhs, rhs) < 0); }
+
+inline bool operator<= (const str& lhs, const str& rhs)		{ return (strcmp(lhs, rhs) <= 0); }
+inline bool operator<= (const char*   lhs, const str& rhs)	{ return (strcmp(lhs, rhs) <= 0); }
+inline bool operator<= (const str& lhs, const char*   rhs)	{ return (strcmp(lhs, rhs) <= 0); }
+
+inline bool operator>  (const str& lhs, const str& rhs)		{ return (strcmp(lhs, rhs) > 0); }
+inline bool operator>  (const char*   lhs, const str& rhs)	{ return (strcmp(lhs, rhs) > 0); }
+inline bool operator>  (const str& lhs, const char*   rhs)	{ return (strcmp(lhs, rhs) > 0); }
+
+inline bool operator>= (const str& lhs, const str& rhs)		{ return (strcmp(lhs, rhs) >= 0); }
+inline bool operator>= (const char*   lhs, const str& rhs)	{ return (strcmp(lhs, rhs) >= 0); }
+inline bool operator>= (const str& lhs, const char*   rhs)	{ return (strcmp(lhs, rhs) >= 0); }
 
 // remove spaces from left
 str	ltrim(const char *s)
