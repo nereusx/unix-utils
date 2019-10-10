@@ -338,11 +338,7 @@ static char *dof(const char *fmt, const char *data)
 			char mark = ' ';
 			
 			p ++;
-			if ( *p == '\'' )
-				*d ++ = *p;
-			else if ( *p == '"' )
-				*d ++ = *p;
-			else {
+			if ( *p == '{' || *p == '(' ) {
 				mark = *p;			
 				if ( mark == '{' )
 					{ mark = '}'; p ++; }
@@ -360,6 +356,12 @@ static char *dof(const char *fmt, const char *data)
 						break;
 					}
 				*bp = '\0';
+				v = exec_expr(block, data);
+				while ( *v )	*d ++ = *v ++;
+				}
+			else {
+				block[0] = *p;
+				block[1] = '\0';
 				v = exec_expr(block, data);
 				while ( *v )	*d ++ = *v ++;
 				}
