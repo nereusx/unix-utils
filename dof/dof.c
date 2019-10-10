@@ -237,6 +237,12 @@ static const char *exec_expr(const char *source, const char *data)
 	case '%':		// none
 		strcpy(buf, "%");
 		break;
+	case '\'':
+		strcpy(buf, "'");
+		break;
+	case '\"':
+		strcpy(buf, "\"");
+		break;
 	default:
 		fprintf(stderr, "unknown element `%%%c'\n", *p);
 		return buf;
@@ -331,23 +337,31 @@ static char *dof(const char *fmt, const char *data)
 			char mark = ' ';
 			
 			p ++;
-			mark = *p;
-			if ( mark == '{' )
-				{ mark = '}'; p ++; }
-			else if ( mark == '(' )
-				{ mark = ')'; p ++; }
-			else
-				mark = ' ';
-
-			bp = block;
-			while ( *p ) {
-				if ( *p == mark )
-					break;
-				*bp ++ = *p ++;
+			if ( *p == '\'' )
+				*d ++ = *p;
+			else if ( *p == '"' )
+				*d ++ = *p;
+			else {
+				mark = *p;			
+				if ( mark == '{' )
+					{ mark = '}'; p ++; }
+				else if ( mark == '(' )
+					{ mark = ')'; p ++; }
+				else 
+					mark = ' ';
+	
+				bp = block;
+				while ( *p ) {
+					if ( *p == mark )
+						break;
+					*bp ++ = *p ++;
+					if ( mark == ' ' ) // patch for one-char
+						break;
+					}
+				*bp = '\0';
+				v = exec_expr(block, data);
+				while ( *v )	*d ++ = *v ++;
 				}
-			*bp = '\0';
-			v = exec_expr(block, data);
-			while ( *v )	*d ++ = *v ++;
 			}
 			
 		// not a command? just copy
@@ -413,7 +427,7 @@ static void	read_conf()
 #define APP_DESCR \
 "dof (do-for) run commands for each element of 'list'."
 
-#define APP_VER "1.2"
+#define APP_VER "1.3"
 
 static const char *usage = "\
 Usage: dof [list] do [commands]\n\
