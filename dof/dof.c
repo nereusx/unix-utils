@@ -238,6 +238,7 @@ static const char *exec_expr(const char *source, const char *data)
 		strcpy(buf, "%");
 		break;
 	case '\'':
+	case 'q':
 		strcpy(buf, "'");
 		break;
 	case '\"':
