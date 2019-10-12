@@ -32,8 +32,8 @@ pdf: pathpp.man
 	groff pathpp.man -Tpdf -man > $(APPNAME).pdf
 
 install: $(APPNAME) $(APPNAME).1.gz
-	install --mode=755 --owner=root --group=root -s $(APPNAME) $(INSTALL)
-	install --mode=755 --owner=root --group=root $(APPNAME).1.gz $(MANDIR)
+	install -m 755 -o root -g root -s $(APPNAME) $(INSTALL)
+	install -m 755 -o root -g root $(APPNAME).1.gz $(MANDIR)
 
 uninstall:
 	rm $(INSTALL)/$(APPNAME) $(MANDIR)/$(APPNAME).1.gz

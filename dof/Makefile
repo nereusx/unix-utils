@@ -31,8 +31,8 @@ pdf: dof.man
 	groff dof.man -Tpdf -man > dof.pdf
 
 install: dof dof.1.gz
-	install --mode=755 --owner=root --group=root -s dof $(INSTALL)
-	install --mode=755 --owner=root --group=root dof.1.gz $(MANDIR)
+	install -m 755 -o root -g root -s dof $(INSTALL)
+	install -m 755 -o root -g root dof.1.gz $(MANDIR)
 
 uninstall:
 	rm $(INSTALL)/dof $(MANDIR)/dof.1.gz
