@@ -14,7 +14,7 @@ A utility to return 0 (which means OK) when the internet connection is up and ru
 
 ## installation
 
-All: just clone the whole directory (`git clone https://github.com/nereusx/unix-utils`),
+**All:** just clone the whole directory (`git clone https://github.com/nereusx/unix-utils`),
 jump into it (`cd unix-utils`) and run `./install.sh`
 
-Just one: go to program's directory and type `make && make install`
+**Just one:** go to program's directory and type `make && make install`
