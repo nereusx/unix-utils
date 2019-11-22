@@ -1,5 +1,5 @@
 #!/bin/sh
-dirs="dof pathpp"
+dirs="pathpp dof isonline"
 for d in $dirs; do
 	cd $d
 	make && make install
