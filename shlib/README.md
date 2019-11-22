@@ -1,0 +1,3 @@
+# shlib
+
+Ignore it. It will be a library for CLI commands...
