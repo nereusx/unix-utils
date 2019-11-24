@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <glob.h>
 
 char *myname;
@@ -112,16 +113,18 @@ void	print_version()	{ exit(1); }
 int main(int argc, char **argv)
 {
 	int		i, ret, flags = 0, mode = 0;
-	list_t	*toremove, *toexclude, *files;
+	list_t	*toremove, *toexclude, *toexecute, *files;
 	node_t	*cur;
 
 	toremove  = stk_create();
 	toexclude = stk_create();
+	toexecute = stk_create();
 	for ( i = 1; i < argc; i ++ ) {
 		if ( argv[i][0] == '-' ) {
 			IF_OPT(argv[i], "-h", "--help")			print_help();
 			else IF_OPT(argv[i], "-v", "--version")	print_version();
 			else IF_OPT(argv[i], "-x", "--exclude")	mode = 1;
+			else IF_OPT(argv[i], "-e", "--execute")	mode = 2;
 			else {
 				fprintf(stderr, "unknown option %s\n", argv[i]);
 				exit(1);
@@ -131,6 +134,7 @@ int main(int argc, char **argv)
 			switch ( mode ) {
 			case 0:	stk_append(toremove,  argv[i]);	break;
 			case 1:	stk_append(toexclude, argv[i]);	break;
+			case 2:	stk_append(toexecute, argv[i]);	break;
 				}
 			}
 		}
@@ -193,9 +197,25 @@ int main(int argc, char **argv)
 	stk_destroy(toexclude);
 
 	/* */
-	stk_print(files);
+	if ( toexecute->head == NULL )
+		stk_print(files);
+	else {
+		char *buf = (char *) malloc(LINE_MAX);
+		cur = toexecute->head;
+		while ( cur ) {
+			node_t	*fc = files->head;
+			while ( fc ) {
+				snprintf(buf, LINE_MAX, "%s %s", cur->file, fc->file);
+				system(buf);
+				fc = fc->next;
+				}
+			cur = cur->next;
+			}
+		free(buf);
+		}
 
 	/* cleanup */
+	stk_destroy(toexecute);
 	stk_destroy(files);
 	return 0;
 }
