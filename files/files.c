@@ -9,7 +9,8 @@
 #include <limits.h>
 #include <glob.h>
 
-char *myname;
+char	*myname;
+int		opt_recurs = 0;
 
 /* --- classic list --- */
 
@@ -121,10 +122,11 @@ int main(int argc, char **argv)
 	toexecute = stk_create();
 	for ( i = 1; i < argc; i ++ ) {
 		if ( argv[i][0] == '-' ) {
-			IF_OPT(argv[i], "-h", "--help")			print_help();
-			else IF_OPT(argv[i], "-v", "--version")	print_version();
-			else IF_OPT(argv[i], "-x", "--exclude")	mode = 1;
-			else IF_OPT(argv[i], "-e", "--execute")	mode = 2;
+			IF_OPT(argv[i], "-h", "--help")				print_help();
+			else IF_OPT(argv[i], "-v", "--version")		print_version();
+			else IF_OPT(argv[i], "-x", "--exclude")		mode = 1;
+			else IF_OPT(argv[i], "-e", "--execute")		mode = 2;
+			else IF_OPT(argv[i], "-r", "--recursive")	opt_recurs = 1;
 			else {
 				fprintf(stderr, "unknown option %s\n", argv[i]);
 				exit(1);
@@ -205,7 +207,7 @@ int main(int argc, char **argv)
 		while ( cur ) {
 			node_t	*fc = files->head;
 			while ( fc ) {
-				snprintf(buf, LINE_MAX, "%s %s", cur->file, fc->file);
+				snprintf(buf, LINE_MAX, "%s '%s'", cur->file, fc->file);
 				system(buf);
 				fc = fc->next;
 				}

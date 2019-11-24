@@ -5,18 +5,10 @@ INSTALL := /bin
 MANDIR  := /usr/share/man/man1
 CFLAGS  := -O -Wall -Wno-unused-result -static
 
-# select compiler
-MUSLCC  := $(shell which musl-gcc)
-ifeq "$(MUSLCC)" ""
-	CC=gcc
-else
-	CC=musl-gcc
-endif
-
 all: $(APPNAME)
 
 clean:
-	rm $(APPNAME) $(APPNAME).1
+	-rm $(APPNAME) $(APPNAME).1 $(APPNAME).1.gz > /dev/null
 
 $(APPNAME): pathpp.c
 	$(CC) $(CFLAGS) pathpp.c -o $(APPNAME)
