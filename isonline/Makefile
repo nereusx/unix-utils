@@ -18,7 +18,8 @@ html: isonline.man
 	groff isonline.man -Thtml -man > isonline.html
 
 pdf: isonline.man
-	groff isonline.man -Tpdf -man > isonline.pdf
+	groff isonline.man -Tps -man | ps2pdf -dPDFSETTINGS=/screen - isonline.pdf
+#	groff isonline.man -Tpdf -man > isonline.pdf
 
 install: isonline isonline.1.gz
 	install -m 755 -o root -g root isonline /usr/local/bin

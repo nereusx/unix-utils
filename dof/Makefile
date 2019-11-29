@@ -20,7 +20,8 @@ html: dof.man
 	groff dof.man -Thtml -man > dof.html
 
 pdf: dof.man
-	groff dof.man -Tpdf -man > dof.pdf
+	groff dof.man -Tps -man | ps2pdf -dPDFSETTINGS=/screen - dof.pdf
+#	groff dof.man -Tpdf -man > dof.pdf
 
 install: dof dof.1.gz
 	install -m 755 -o root -g root -s dof $(INSTALL)
