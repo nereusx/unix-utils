@@ -132,7 +132,7 @@ Options:\n\
 ";
 
 static const char *verss = "\
-path++ version 1.3 (-e added)\n\
+path++ version 1.3\n\
 \n"APP_DESCR"\n\
 \n\
 Copyright (C) 2017-2019 Free Software Foundation, Inc.\n\

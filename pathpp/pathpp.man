@@ -7,7 +7,9 @@ path++ \- cleanup path
 .SH SYNOPSIS
 \# .SY command; .OP \-df...; .OP \-d cs; .OP \-f fam; ...; .RI [ parameter .\|.\|. ]; .YS;
 .SY path++
-.OP \-scb
+.OP \-s
+.OP \-c
+.OP \-b
 .OP \-e varname
 .OP \-h
 .OP \-v
@@ -16,7 +18,7 @@ path++ \- cleanup path
 .SH DESCRIPTION
 Check directories of path removes non-existing, duplicated, and add directories to system's PATH.
 With few words, cleanups the PATH. When it runs, it prints out the corrected path.
-Similar variables can be passed, such as MANPATH and GRPATH.
+Similar variables can be used, such as MANPATH and GRPATH.
 .PP
 Example (tcsh):
 .EX
