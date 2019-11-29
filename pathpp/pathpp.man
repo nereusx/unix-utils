@@ -22,12 +22,21 @@ Similar variables can be used, such as MANPATH and GRPATH.
 .PP
 Example (tcsh):
 .EX
+	# clean up path
 	setenv PATH `path++`
+	
+	# clean up MANPATH after add the /usr/local/myman
+	setenv MANPATH `path++ -e MANPATH /usr/local/myman`
 .EE
 .PP
 Example (bash):
 .EX
+	# clean up path
 	export PATH=$(path++)
+	
+	# make your path as you wish without mess it up
+	NEWPATH=/bin:/usr/bin:/usr/local/bin:$PATH
+	export PATH=$(path++ $NEWPATH)
 .EE
 .SH OPTIONS
 .TP
