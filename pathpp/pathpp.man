@@ -1,7 +1,7 @@
 \# exec: groff pathpp.man -Tascii -man | less
 \#
 \# .TH cmd-name section [date [version [page-descr]]]
-.TH path++ 1 "12 Mar 2019" "v1.2" "User Commands"
+.TH path++ 1 "29 Nov 2019" "v1.3" "User Commands"
 .SH NAME
 path++ \- cleanup path
 .SH SYNOPSIS
