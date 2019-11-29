@@ -1,4 +1,5 @@
 #
+# note: ps2pdf produces better results
 
 APPNAME := path++
 INSTALL := /bin
@@ -21,8 +22,8 @@ html: pathpp.man
 	groff pathpp.man -Thtml -man > $(APPNAME).html
 
 pdf: pathpp.man
-#	groff pathpp.man -Tpdf -man > $(APPNAME).pdf
 	groff pathpp.man -Tps -man | ps2pdf -dPDFSETTINGS=/screen - $(APPNAME).pdf
+#	groff pathpp.man -Tpdf -man > $(APPNAME).pdf
 
 install: $(APPNAME) $(APPNAME).1.gz
 	install -m 755 -o root -g root -s $(APPNAME) $(INSTALL)

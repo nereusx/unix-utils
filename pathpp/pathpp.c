@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 typedef struct s_node node_t;
 struct s_node {
@@ -170,7 +171,24 @@ int main(int argc, char **argv)
 				mode = 0;
 				break;
 			default:
-				node_add(&new_dirs, argv[i]);
+				if ( strchr(argv[i], ':') ) { // bash format
+					char *dest = strdup(argv[i]), *st = dest;
+					char *p = dest;
+					while ( *p ) {
+						if ( *p == ':' ) {
+							*p = '\0';
+							if ( strlen(st) )
+								node_add(&new_dirs, st);
+							st = p + 1;
+							}
+						p ++;
+						}
+					if ( strlen(st) )
+						node_add(&new_dirs, st);
+					free(dest);
+					}
+				else
+					node_add(&new_dirs, argv[i]);
 				}
 			}
 		}
