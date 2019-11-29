@@ -112,16 +112,16 @@ static char *duppath()
 }
 
 #define APP_DESCR \
-"Check directories of path removes non-exists,\
- duplicated, and add directories\
+"Check directories of path removes non-existing, duplicated, and add directories\
  to system's PATH.\
- With few words, cleanups the PATH."
+ With few words, cleanups the PATH (or any PATH-like environment variable, see -e)."
 
 static const char *usage = "\
-Usage (csh): setenv PATH `path++ [-s|-u|-c|-b] [dir ...]`\n\
-OR   (bash): export PATH=$(path++ [-s|-u|-c|-b] [dir ...])\n\
+Usage (csh): setenv PATH `path++ [-s|-u|-c|-b] [-e var] [dir ...]`\n\
+OR   (bash): export PATH=$(path++ [-s|-u|-c|-b] [-e var] [dir ...])\n\
 \n"APP_DESCR"\n\
 Options:\n\
+\t-e\tselect path-variable (PATH,MANPATH,etc), default is PATH\n\
 \t-s\tadd new directories at the beginning; otherwise appends\n\
 \t-c\tprint csh command\n\
 \t-b\tprint sh command\n\
@@ -132,7 +132,7 @@ Options:\n\
 ";
 
 static const char *verss = "\
-path++ version 1.2\n\
+path++ version 1.3 (-e added)\n\
 \n"APP_DESCR"\n\
 \n\
 Copyright (C) 2017-2019 Free Software Foundation, Inc.\n\
@@ -145,9 +145,9 @@ Written by Nicholas Christopoulos <mailto:nereus@freemail.gr>\n\
 
 int main(int argc, char **argv)
 {
-	int		flags = 0;
-	const char *p, *cspath = getenv("PATH");
-	char *d, *dest = strdup(cspath);
+	int		flags = 0, mode = 0;
+	const char *p, *cspath;
+	char *d, *dest, *vname = NULL;
 
 	for ( int i = 1; i < argc; i ++ ) {
 		if ( argv[i][0] == '-' ) {	/* option, or error */
@@ -155,6 +155,7 @@ int main(int argc, char **argv)
 				switch ( argv[i][j] ) {
 				case 'c': flags |= 0x02; break;
 				case 'b': flags |= 0x04; break;
+				case 'e': mode = 1;
 				case 's': flags |= 0x08; break;
 				case 'h': puts(usage); return 1;
 				case 'v': puts(verss); return 1;
@@ -162,10 +163,31 @@ int main(int argc, char **argv)
 					}
 				}
 			}
-		else
-			node_add(&new_dirs, argv[i]);
+		else {
+			switch ( mode )	{
+			case 1: // this is the variable name
+				vname = strdup(argv[i]);
+				mode = 0;
+				break;
+			default:
+				node_add(&new_dirs, argv[i]);
+				}
+			}
 		}
 
+	// default variable = PATH
+	if ( !vname )
+		vname = strdup("PATH");
+
+	// if not exist, create it
+	cspath = getenv(vname);
+	if ( !cspath ) {
+		setenv(vname, "", 1);
+		cspath = getenv(vname);
+		}
+	dest = strdup(cspath);
+
+	//
 	if ( new_dirs.root && (flags & 0x08) )
 		list_add(&path_list, &new_dirs);
 
@@ -190,14 +212,10 @@ int main(int argc, char **argv)
 	char *pathstr = duppath();
 
 	/* ready... */
-	if ( flags & 0x02 ) {	/* return c-shell text for eval */
-		write(0, "setenv PATH ", 12);
-		puts(pathstr);
-		}
-	else if ( flags & 0x04 ) {	/* return posix-shell text for eval */
-		write(0, "export PATH=", 12);
-		puts(pathstr);
-		}
+	if ( flags & 0x02 )	/* return c-shell text for eval */
+		printf("setenv %s \"%s\"", vname, pathstr);
+	else if ( flags & 0x04 )	/* return posix-shell text for eval */
+		printf("export %s=\"%s\"", vname, pathstr);
 	else
 		puts(pathstr);
 
