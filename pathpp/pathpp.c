@@ -124,8 +124,8 @@ OR   (bash): export PATH=$(path++ [-s|-u|-c|-b] [-e var] [dir ...])\n\
 Options:\n\
 \t-e\tselect path-variable (PATH,MANPATH,etc), default is PATH\n\
 \t-s\tadd new directories at the beginning; otherwise appends\n\
-\t-c\tprint csh command\n\
 \t-b\tprint sh command\n\
+\t-c\tprint csh command\n\
 \t-h\tthis screen\n\
 \t-v\tversion and program information\n\
 \n\
@@ -231,14 +231,15 @@ int main(int argc, char **argv)
 
 	/* ready... */
 	if ( flags & 0x02 )	/* return c-shell text for eval */
-		printf("setenv %s \"%s\"", vname, pathstr);
+		printf("setenv %s \'%s\'", vname, pathstr);
 	else if ( flags & 0x04 )	/* return posix-shell text for eval */
-		printf("export %s=\"%s\"", vname, pathstr);
+		printf("export %s=\'%s\'", vname, pathstr);
 	else
 		puts(pathstr);
 
 	/* clean-up */
 	free(pathstr);
+	free(vname);
 	delete_list(&new_dirs);
 	delete_list(&path_list);
 	
