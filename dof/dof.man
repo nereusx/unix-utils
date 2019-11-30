@@ -1,7 +1,7 @@
 \# exec: groff dof.1 -Tascii -man | less
 \#
 \# .TH cmd-name section [date [version [page-descr]]]
-.TH dof 1 "6 Apr 2019" "v1.2" "User Commands"
+.TH dof 1 "30 Nov 2019" "v1.4" "User Commands"
 .SH NAME
 dof \- (do-for) executes commands for each item of a list
 .SH SYNOPSIS
@@ -11,7 +11,9 @@ dof \- (do-for) executes commands for each item of a list
 .OP \-l
 .OP \-h
 .OP \-v
-.RI [item .\|.\|. | - ]\ do\ [ command | - ]
+.RI [item .\|.\|. | - ]\ [
+.OP -x
+.RI ...]\ do\ [ command | - ]
 .SH DESCRIPTION
 \fIdof\fR executes commands for each item (file or string) of a list
 .PP
@@ -26,6 +28,9 @@ read from stdin.
 .TP
 .BR \-e
 execute; \fIdof\fR displays what commands would be run, this option executes them.
+.TP
+.BR \-x
+Exclude list. After \fI-x\fR are following regex's patterns to exclude from the results.
 .TP
 .BR \-r
 recursive execution into subdirectories
@@ -96,8 +101,9 @@ Example:
 .SH NOTES
 .TP
 Items '.' and '..' are ignored.
-\# .SH SEE ALSO
-\# command1(section), command2(section)
+.SH SEE ALSO
+.BR regex (7)
+.PP
 .SH AUTHOR
 .MT nereus@\:freemail.gr
 Nicholas Christopoulos

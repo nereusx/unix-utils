@@ -15,6 +15,7 @@
 #include <limits.h>
 #include <glob.h>
 #include <dirent.h>
+#include <regex.h>
 
 typedef struct s_node node_t;
 struct s_node {
@@ -33,6 +34,10 @@ static list_t file_list;
 static list_t cmds_list;
 static list_t rcpt_list;
 static list_t patt_list;
+static list_t excl_list;
+
+static int		re_count = 0;
+static regex_t	**re_table;
 
 #ifdef STRDUP
 // clone a string
@@ -211,6 +216,19 @@ static char *extname(const char *source)
 	else
 		buf[0] = '\0';
 	return buf;
+}
+
+//
+static int match_regex(regex_t *r, const char *to_match)
+{
+	const char *p = to_match;
+	const int n_matches = 1;
+	regmatch_t m[n_matches];
+
+	int nomatch = regexec(r, p, n_matches, m, 0);
+	if ( nomatch )
+		return 0;
+	return 1;
 }
 
 //
@@ -430,14 +448,15 @@ static void	read_conf()
 #define APP_DESCR \
 "dof (do-for) run commands for each element of 'list'."
 
-#define APP_VER "1.3"
+#define APP_VER "1.4"
 
 static const char *usage = "\
-Usage: dof [list] do [commands]\n\
+Usage: dof [list] [-x patterns] do [commands]\n\
 "APP_DESCR"\n\
 \n\
 Options:\n\
 \t-e\texecute; dof displays what commands would be run, this option executes them.\n\
+\t-x\texclude patterns; the excluded list has always priority.\n\
 \t-r\trecursive execution of commands into sub-directories.\n\
 \t-f\tforce non-stop; dof stops on error, this option forces dof to ignore errors.\n\
 \t-p\tplain files only; directories, devices, etc are ignored.\n\
@@ -482,6 +501,18 @@ static const char *namep(const char *file)
 	return file;
 }
 
+//
+static int pass_exclude_list(const char *src)
+{
+	int	i;
+	
+	for ( i = 0; i < re_count; i ++ ) {
+		if ( match_regex(re_table[i], src) )
+			return 0;
+		}
+	return 1;
+}
+
 // execute
 int execute(int flags)
 {
@@ -506,6 +537,8 @@ int execute(int flags)
 	// for each file
 	cur = file_list.root;
 	while ( cur ) {
+
+		// check file attributes
 		if ( flags & 0x04 || flags & 0x08 ) { // file attribute check
 			if ( stat(cur->str, &st) == 0 ) {
 				if ( flags & 0x04 ) { // plain files only
@@ -522,18 +555,22 @@ int execute(int flags)
 					}
 				}
 			}
-		cmdbuf = dof(cmds, cur->str);
-		if ( (flags & 0x01) == 0 ) // not execute-option
-			fprintf(stdout, "%s\n", cmdbuf);
-		else {
-			if ( (exit_status = system(cmdbuf)) != 0 ) {
-				if ( (flags & 0x02) == 0 ) { // not force-option
-					free(cmdbuf);
-					break;
+
+		if ( pass_exclude_list(cur->str) )	{
+			// execute
+			cmdbuf = dof(cmds, cur->str);
+			if ( (flags & 0x01) == 0 ) // not execute-option
+				fprintf(stdout, "%s\n", cmdbuf);
+			else {
+				if ( (exit_status = system(cmdbuf)) != 0 ) {
+					if ( (flags & 0x02) == 0 ) { // not force-option
+						free(cmdbuf);
+						break;
+						}
 					}
 				}
+			free(cmdbuf);
 			}
-		free(cmdbuf);
 		cur = cur->next;
 		}
 	
@@ -559,14 +596,16 @@ int execute_indir(int flags)
 			continue;
 		if ( stat(p_dirent->d_name, &st) == 0 ) {
 			if ( S_ISDIR(st.st_mode) ) {
-				if ( chdir(p_dirent->d_name) == 0 ) {
-					exit_status = execute_indir(flags);
-					chdir("..");
-					if ( exit_status && (flags & 0x02) == 0 ) // not force-option
-						break;
+				if ( pass_exclude_list(p_dirent->d_name) ) {
+					if ( chdir(p_dirent->d_name) == 0 ) {
+						exit_status = execute_indir(flags);
+						chdir("..");
+						if ( exit_status && (flags & 0x02) == 0 ) // not force-option
+							break;
+						}
+					else
+						fprintf(stderr, "change dir to %s failed.\n", p_dirent->d_name);					
 					}
-				else
-					fprintf(stderr, "change dir to %s failed.\n", p_dirent->d_name);					
 				}
 			}
 		}
@@ -578,14 +617,17 @@ int execute_indir(int flags)
 int main(int argc, char **argv)
 {
 	int		flags = 0, state = 0, exit_status = 0;
+	int		i;
 	node_t	*cur;
 
 	list_init(&file_list);
 	list_init(&cmds_list);
 	list_init(&rcpt_list);
 	list_init(&patt_list);
-	for ( int i = 1; i < argc; i ++ ) {
-		if ( argv[i][0] == '-' && state == 0 ) {
+	list_init(&excl_list);
+
+	for ( i = 1; i < argc; i ++ ) {
+		if ( argv[i][0] == '-' && (state == 0 || state == 2) ) {
 
 			// one minus, read from stdin
 			if ( argv[i][1] == '\0' ) {
@@ -601,8 +643,10 @@ int main(int argc, char **argv)
 						else
 							list_add(&file_list, buf);
 						}
-					else
+					else if ( state == 1 ) 
 						list_add(&cmds_list, buf);
+					else if ( state == 2 ) 
+						list_add(&excl_list, buf);
 					}
 				}
 
@@ -614,6 +658,7 @@ int main(int argc, char **argv)
 				case 'p': flags |= 0x04; break;
 				case 'd': flags |= 0x08; break;
 				case 'r': flags |= 0x10; break;
+				case 'x': state = 2; break;
 				case 'h': puts(usage); return 1;
 				case 'v': puts(verss); return 1;
 				case '-':
@@ -652,27 +697,57 @@ int main(int argc, char **argv)
 					}
 				}
 			}
-		else if ( strcmp(argv[i], "do") == 0 && state == 0 )
-			state ++;
+		else if ( strcmp(argv[i], "do") == 0 && (state == 0 || state == 2) )
+			state = 1;
 		else {
-			if ( state == 0 ) {
+			switch ( state ) {
+			case 0:
 				if (
 					strcmp(namep(argv[i]), ".") == 0 ||
 					strcmp(namep(argv[i]), "..") == 0
 					)
 					;
-				else 
+				else
 					list_add(&patt_list, argv[i]);
-				}
-			else
+				break;
+			case 1:
 				list_add(&cmds_list, argv[i]);
+				break;
+			case 2:
+				list_add(&excl_list, argv[i]);
+				break;
+				}
 			}
 		}
 
-	if ( state == 0 ) { // syntax error
+	if ( state == 0 || state == 2 ) { // syntax error
 		puts("`do' keyword missing; run `dof -h' for help.");
 		return 1;
 		}
+
+	// build regex table
+	if ( excl_list.root ) {
+		int		i, status;
+		node_t	*cur;
+
+		re_count = 0;
+		cur = excl_list.root;
+		while ( cur ) {
+			re_count ++;
+			cur = cur->next;
+			}
+		re_table = (regex_t **) malloc(sizeof(regex_t*) * re_count);
+		for ( i = 0, cur = excl_list.root; i < re_count; i ++, cur = cur->next ) {
+			re_table[i] = (regex_t *) malloc(sizeof(regex_t));
+		    status = regcomp(re_table[i], cur->str, REG_EXTENDED|REG_NEWLINE);
+		    if ( status != 0 ) {
+				char error_message[LINE_MAX];
+				regerror(status, re_table[i], error_message, LINE_MAX);
+		        printf("Regex error compiling '%s': %s\n", cur->str, error_message);
+        		return 1;
+				}
+			}
+	    }
 
 	if ( flags & 0x10 )
 		exit_status = execute_indir(flags);
@@ -680,6 +755,13 @@ int main(int argc, char **argv)
 		exit_status = execute(flags);
 
 	// cleanup
+	for ( i = 0; i < re_count; i ++ ) {
+		regfree(re_table[i]);
+		free(re_table[i]);
+		}
+	free(re_table);
+	
+	list_clear(&excl_list);
 	list_clear(&file_list);
 	list_clear(&cmds_list);
 	list_clear(&rcpt_list);
