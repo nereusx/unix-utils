@@ -456,7 +456,7 @@ Usage: dof [list] [-x patterns] do [commands]\n\
 \n\
 Options:\n\
 \t-e\texecute; dof displays what commands would be run, this option executes them.\n\
-\t-x\texclude patterns; the excluded list has always priority.\n\
+\t-x\texclude regex patterns; the excluded list always has priority.\n\
 \t-r\trecursive execution of commands into sub-directories.\n\
 \t-f\tforce non-stop; dof stops on error, this option forces dof to ignore errors.\n\
 \t-p\tplain files only; directories, devices, etc are ignored.\n\
