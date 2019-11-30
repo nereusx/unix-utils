@@ -31,6 +31,8 @@ execute; \fIdof\fR displays what commands would be run, this option executes the
 .TP
 .BR \-x
 Exclude list. After \fI-x\fR are following regex's patterns to exclude from the results.
+Since the dof parameters can be anything, this is no glob file-patterns but regex's patterns.
+Example \fI`*.c'\fR file-pattern should be written as \fI`.*\\.c'\fR.
 .TP
 .BR \-r
 recursive execution into subdirectories
