@@ -7,9 +7,9 @@ CFLAGS  := -O -Wall -Wno-unused-result -static
 all: dof
 
 clean:
-	-rm dof dof.1 dof.1.gz
+	-@rm dof dof.1*
 
-dof: dof.c
+dof: dof.c list.c file.c
 	$(CC) $(CFLAGS) dof.c -o dof
 
 dof.1.gz: dof.man
@@ -28,5 +28,5 @@ install: dof dof.1.gz
 	install -m 755 -o root -g root dof.1.gz $(MANDIR)
 
 uninstall:
-	rm $(INSTALL)/dof $(MANDIR)/dof.1.gz
+	-@rm $(INSTALL)/dof $(MANDIR)/dof.1.gz
 

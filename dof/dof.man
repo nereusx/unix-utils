@@ -8,6 +8,7 @@ dof \- (do-for) executes commands for each item of a list
 \# .SY command; .OP \-efp...; .OP \-d cs; .OP \-f fam; ...; .RI [ parameter .\|.\|. ]; .YS;
 .SY dof
 .OP \-efpr
+.OP \-s:N..N[..N]
 .OP \-l
 .OP \-h
 .OP \-v
@@ -23,7 +24,7 @@ Example, convert all mp3s to ogg
 .EE
 Example, display colors on terminal
 .EX
-	dof -e `seq 0 15` do 'tput setaf %f; echo colour%f; tput op;'
+	dof -e -s:0..15 do 'tput setaf %f; echo colour%f; tput op;'
 .EE
 .SH OPTIONS
 .TP
@@ -49,6 +50,11 @@ plain files only; directories, devices, etc are ignored.
 .TP
 .BR \-d
 directories only; plain-files, devices, etc are ignored.
+.TP
+.BR \-s:F..L[..S]
+adds a sequence of numbers (float or integer).
+\fIF\fR for first, \fIL\fR for last and optionally \fIS\fR for step.
+This option can be repeated many times.
 .TP
 .BR \-l
 print recipes (/etc/dof.conf, ~/.dof)

@@ -10,7 +10,7 @@ all: dof
 clean:
 	rm dof
 
-dof: dof.c
+dof: dof.c list.c file.c
 	$(CC) $(CFLAGS) dof.c -o dof
 
 dof.1.gz: dof.man

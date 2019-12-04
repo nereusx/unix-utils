@@ -12,23 +12,13 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <limits.h>
 #include <glob.h>
 #include <dirent.h>
 #include <regex.h>
-
-typedef struct s_node node_t;
-struct s_node {
-	char *str;
-	char *data;
-	node_t *next;
-	};
-
-typedef struct s_list list_t;
-struct s_list {
-	node_t *root;
-	node_t *tail;
-	};
+#include "list.c"
+#include "file.c"
 
 static list_t file_list;
 static list_t cmds_list;
@@ -38,185 +28,6 @@ static list_t excl_list;
 
 static int		re_count = 0;
 static regex_t	**re_table;
-
-#ifdef STRDUP
-// clone a string
-static char *strdup(const char *src)
-{
-	char *buf = malloc(strlen(src) + 1);
-    strcpy(buf, src);
-	return buf;
-}
-#endif
-
-// add node to list
-// this just stores a string in the list
-static void list_add(list_t *list, const char *str)
-{
-	node_t *np = (node_t *) malloc(sizeof(node_t));
-	np->str  = strdup(str);
-	np->data = NULL;
-	np->next = NULL;
-	if ( list->root ) {
-		list->tail->next = np;
-		list->tail = np;
-		}
-	else
-		list->root = list->tail = np;
-}
-
-// add node to list
-// this stores a key and a value to the list
-static void list_addpair(list_t *list, const char *key, const char *value)
-{
-	node_t *np = (node_t *) malloc(sizeof(node_t));
-	np->str  = strdup(key);
-	np->data = strdup(value);
-	np->next = NULL;
-	if ( list->root ) {
-		list->tail->next = np;
-		list->tail = np;
-		}
-	else
-		list->root = list->tail = np;
-}
-
-// add node to list
-// this stores wildcard matches
-static void list_addwc(list_t *list, const char *pattern)
-{
-	glob_t globbuf;
-	int flags = GLOB_DOOFFS;
-	#ifdef GLOB_TILDE
-	flags |= GLOB_TILDE;
-	#endif
-	#ifdef GLOB_BRACE
-	flags |= GLOB_BRACE;
-	#endif
-
-	globbuf.gl_offs = 0;
-	if ( glob(pattern, flags, NULL, &globbuf) == 0 ) {
-		for ( int i = 0; globbuf.gl_pathv[i]; i ++ ) {
-			const char *name = globbuf.gl_pathv[i];
-			if ( ! (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) )
-				list_add(list, name);
-			}
-		globfree(&globbuf);
-		}
-}
-
-// returns true if the "filename" has wildcards
-static int has_wildcards(const char *filename)
-{
-	const char *p = filename;
-	
-	while ( *p ) {
-		if ( *p == '*' || *p == '?' || *p == '['
-	#ifdef GLOB_TILDE
-			 || *p == '~'
-	#endif
-	#ifdef GLOB_BRACE
-			 || *p == '{'
-	#endif
-		   )
-			return 1;
-		p ++;
-		}
-	return 0;
-}
-
-// initialize list
-static void list_init(list_t *list)
-{
-	list->root = list->tail = NULL;
-}
-
-// clean up memory and reset the list
-static void list_clear(list_t *list)
-{
-	node_t *pre, *cur = list->root;
-
-	while ( cur ) {
-		pre = cur;
-		cur = cur->next;
-		free(pre->str);
-		free(pre);
-		}
-	list->root = list->tail = NULL;
-}
-
-// convert string list to string
-static char *list_to_string(list_t *list, const char *delim)
-{
-	char	*ret;
-	int		len = 0, delim_len = 0, first = 1;
-	node_t	*cur = list->root;
-
-	if ( delim )
-		delim_len = strlen(delim);
-	ret = (char *) malloc(1);
-	*ret = '\0';
-	while ( cur ) {
-		len += delim_len + strlen(cur->str);
-		ret = (char *) realloc(ret, len + 1);
-		if ( first )
-			first = 0;
-		else if ( delim )
-			strcat(ret, delim);
-		strcat(ret, cur->str);
-		cur = cur->next;
-		}
-	return ret;
-}
-
-// returns the name of the file without the directory and the extension
-static char *basename(const char *source)
-{
-	static char buf[PATH_MAX];
-	char		*b;
-	const char	*p;
-
-	if ( (p = strrchr(source, '/')) != NULL )
-		strcpy(buf, p + 1);
-	else
-		strcpy(buf, source);
-	if ( (b = (char *) strrchr(buf, '.')) != NULL )
-		*b = '\0';
-	return buf;
-}
-
-// returns the directory of the file without the trailing '/'
-static char *dirname(const char *source)
-{
-	static char buf[PATH_MAX];
-	const char	*p;
-
-	if ( (p = strrchr(source, '/')) != NULL ) {
-		strcpy(buf, source);
-		buf[p - source] = '\0';
-		}
-	else
-		buf[0] = '\0';
-	return buf;
-}
-
-// returns the extension of the file without the '.'
-static char *extname(const char *source)
-{
-	static char buf[PATH_MAX];
-	char		*b;
-	const char	*p;
-
-	if ( (p = strrchr(source, '/')) != NULL )
-		strcpy(buf, p + 1);
-	else
-		strcpy(buf, source);
-	if ( (b = (char *) strrchr(buf, '.')) != NULL )
-		return b + 1;
-	else
-		buf[0] = '\0';
-	return buf;
-}
 
 //
 static int match_regex(regex_t *r, const char *to_match)
@@ -448,7 +259,7 @@ static void	read_conf()
 #define APP_DESCR \
 "dof (do-for) run commands for each element of 'list'."
 
-#define APP_VER "1.4"
+#define APP_VER "1.5"
 
 static const char *usage = "\
 Usage: dof [list] [-x patterns] do [commands]\n\
@@ -461,6 +272,7 @@ Options:\n\
 \t-f\tforce non-stop; dof stops on error, this option forces dof to ignore errors.\n\
 \t-p\tplain files only; directories, devices, etc are ignored.\n\
 \t-d\tdirectories only; plain files, devices, etc are ignored.\n\
+\t-s:fist..last[..step]\tadd sequence of numbers (float or integer).\n\
 \t-l\tprint recipes (/etc/dof.conf, ~/.dof)\n\
 \t--<recipe>\n\t\texecute recipe (ex: dof --to-ogg)\n\
 \t-\tread from stdin\n\
@@ -614,11 +426,30 @@ int execute_indir(int flags)
 }
 
 //
+const char *getnum(const char *src, char *buf)
+{
+	const char *p = src;
+	char *d = buf;
+	while ( *p == ' ' || *p == '\t' ) p ++;
+	if ( *p == '+' )	p ++;
+	if ( *p == '-' )	*d ++ = *p ++;
+	
+	while ( isdigit(*p) )	*d ++ = *p ++;
+	if ( p[0] == '.' && isdigit(p[1]) ) {
+		*d ++ = *p ++;
+		while ( isdigit(*p) )	*d ++ = *p ++;
+		}
+	*d = '\0';
+	return p;
+}
+
+//
 int main(int argc, char **argv)
 {
 	int		flags = 0, state = 0, exit_status = 0;
 	int		i;
 	node_t	*cur;
+	char buf[LINE_MAX];
 
 	list_init(&file_list);
 	list_init(&cmds_list);
@@ -631,22 +462,15 @@ int main(int argc, char **argv)
 
 			// one minus, read from stdin
 			if ( argv[i][1] == '\0' ) {
-				char buf[LINE_MAX];
-
 				while ( fgets(buf, LINE_MAX, stdin) )	{
-					if ( state == 0 ) {
-						if (
-							strcmp(namep(argv[i]), ".") == 0 ||
-							strcmp(namep(argv[i]), "..") == 0
-							)
-							; // ignore them
-						else
+					switch ( state ) {
+					case 0:
+						if ( strcmp(namep(argv[i]), ".") != 0 && strcmp(namep(argv[i]), "..") != 0 )
 							list_add(&file_list, buf);
+						break;
+					case 1:	list_add(&cmds_list, buf);	break;
+					case 2:	list_add(&excl_list, buf);	break;
 						}
-					else if ( state == 1 ) 
-						list_add(&cmds_list, buf);
-					else if ( state == 2 ) 
-						list_add(&excl_list, buf);
 					}
 				}
 
@@ -661,6 +485,47 @@ int main(int argc, char **argv)
 				case 'x': state = 2; break;
 				case 'h': puts(usage); return 1;
 				case 'v': puts(verss); return 1;
+				case 's': // add sequence of numbers
+						{
+						const char *p, *pstart;
+						double last, start, step = 1.0;
+
+						p = pstart = (argv[i]+j+1);
+						if ( *p != ':' ) { puts("example: dof -s:1..10"); return 1; }
+						p ++;
+
+						// get 'first'
+						p = getnum(p, buf);
+						start = last = atof(buf);
+
+						// next number
+						if ( p[0] == '.' && p[1] == '.' )		p += 2;
+						else { puts("example: dof -s:1..10"); return 1; }
+						
+						// get 'last'
+						p = getnum(p, buf);
+						last = atof(buf);
+
+						// get 'step'
+						if ( p[0] == '.' && p[1] == '.' ) {
+							p += 2;
+							p = getnum(p, buf);
+							step = atof(buf);
+							}
+							
+						// add
+						for ( double f = start; f <= last; f += step ) {
+							sprintf(buf, "%g", f);
+							switch ( state ) {
+							case 0:	list_add(&patt_list, buf);	break;
+							case 1:	list_add(&cmds_list, buf); break;
+							case 2:	list_add(&excl_list, buf); break;
+								}
+							}
+
+						j += p - pstart;
+						}
+						break;
 				case '-':
 						// execute recipe
 						read_conf();
@@ -692,7 +557,7 @@ int main(int argc, char **argv)
 						return 0;
 				default:
 					// error
-					puts("unknown option.");
+					printf("unknown option [%c].\n", argv[i][j]);
 					return 1;
 					}
 				}
@@ -702,20 +567,11 @@ int main(int argc, char **argv)
 		else {
 			switch ( state ) {
 			case 0:
-				if (
-					strcmp(namep(argv[i]), ".") == 0 ||
-					strcmp(namep(argv[i]), "..") == 0
-					)
-					;
-				else
+				if ( strcmp(namep(argv[i]), ".") != 0 && strcmp(namep(argv[i]), "..") != 0 )
 					list_add(&patt_list, argv[i]);
 				break;
-			case 1:
-				list_add(&cmds_list, argv[i]);
-				break;
-			case 2:
-				list_add(&excl_list, argv[i]);
-				break;
+			case 1:	list_add(&cmds_list, argv[i]); break;
+			case 2:	list_add(&excl_list, argv[i]); break;
 				}
 			}
 		}
