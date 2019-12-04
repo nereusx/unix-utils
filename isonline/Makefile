@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=
-MANDIR=/usr/local/share/man/man1
+MANDIR=$(shell test -d /usr/local/share/man && echo /usr/local/share/man || echo /usr/local/man)
 
 all: isonline
 
@@ -23,7 +23,7 @@ pdf: isonline.man
 
 install: isonline isonline.1.gz
 	install -m 755 -o root -g root isonline /usr/local/bin
-	install -m 755 -o root -g root isonline.1.gz $(MANDIR)
+	install -m 755 -o root -g root isonline.1.gz $(MANDIR)/man1
 
 uninstall:
-	rm /usr/local/bin/isonline $(MANDIR)/isonline.1.gz
+	-@rm /usr/local/bin/isonline $(MANDIR)/man1/isonline.1.gz
