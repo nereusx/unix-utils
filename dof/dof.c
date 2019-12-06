@@ -14,9 +14,10 @@
 #include <string.h>
 #include <ctype.h>
 #include <limits.h>
-#include <glob.h>
 #include <dirent.h>
 #include <regex.h>
+#include <fnmatch.h>
+#include <glob.h>
 #include "list.c"
 #include "file.c"
 
@@ -25,9 +26,14 @@ static list_t cmds_list;
 static list_t rcpt_list;
 static list_t patt_list;
 static list_t excl_list;
+static list_t excg_list;
+
+typedef char * charp_t;
 
 static int		re_count = 0;
 static regex_t	**re_table;
+static int		ge_count = 0;
+static charp_t	*ge_table;
 
 //
 static int match_regex(regex_t *r, const char *to_match)
@@ -268,6 +274,7 @@ Usage: dof [list] [-x patterns] do [commands]\n\
 Options:\n\
 \t-e\texecute; dof displays what commands would be run, this option executes them.\n\
 \t-x\texclude regex patterns; the excluded list always has priority.\n\
+\t-g\texclude glob patterns; the excluded list always has priority.\n\
 \t-r\trecursive execution of commands into sub-directories.\n\
 \t-f\tforce non-stop; dof stops on error, this option forces dof to ignore errors.\n\
 \t-p\tplain files only; directories, devices, etc are ignored.\n\
@@ -296,7 +303,7 @@ static const char *verss = "\
 dof version "APP_VER"\n\
 "APP_DESCR"\n\
 \n\
-Copyright (C) 2017 Free Software Foundation, Inc.\n\
+Copyright (C) 2017-2019 Free Software Foundation, Inc.\n\
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.\n\
 This is free software: you are free to change and redistribute it.\n\
 There is NO WARRANTY, to the extent permitted by law.\n\
@@ -320,6 +327,11 @@ static int pass_exclude_list(const char *src)
 	
 	for ( i = 0; i < re_count; i ++ ) {
 		if ( match_regex(re_table[i], src) )
+			return 0;
+		}
+	for ( i = 0; i < ge_count; i ++ ) {
+//		if ( fnmatch(ge_table[i], src, FNM_PATHNAME | FNM_EXTMATCH) == 0 )
+		if ( fnmatch(ge_table[i], src, FNM_PATHNAME | FNM_PERIOD) == 0 )
 			return 0;
 		}
 	return 1;
@@ -456,9 +468,10 @@ int main(int argc, char **argv)
 	list_init(&rcpt_list);
 	list_init(&patt_list);
 	list_init(&excl_list);
+	list_init(&excg_list);
 
 	for ( i = 1; i < argc; i ++ ) {
-		if ( argv[i][0] == '-' && (state == 0 || state == 2) ) {
+		if ( argv[i][0] == '-' && (state == 0 || state > 1) ) {
 
 			// one minus, read from stdin
 			if ( argv[i][1] == '\0' ) {
@@ -470,6 +483,7 @@ int main(int argc, char **argv)
 						break;
 					case 1:	list_add(&cmds_list, buf);	break;
 					case 2:	list_add(&excl_list, buf);	break;
+					case 3:	list_add(&excg_list, buf);	break;
 						}
 					}
 				}
@@ -483,6 +497,7 @@ int main(int argc, char **argv)
 				case 'd': flags |= 0x08; break;
 				case 'r': flags |= 0x10; break;
 				case 'x': state = 2; break;
+				case 'g': state = 3; break;
 				case 'h': puts(usage); return 1;
 				case 'v': puts(verss); return 1;
 				case 's': // add sequence of numbers
@@ -520,6 +535,7 @@ int main(int argc, char **argv)
 							case 0:	list_add(&patt_list, buf);	break;
 							case 1:	list_add(&cmds_list, buf); break;
 							case 2:	list_add(&excl_list, buf); break;
+							case 3:	list_add(&excg_list, buf); break;
 								}
 							}
 
@@ -562,7 +578,7 @@ int main(int argc, char **argv)
 					}
 				}
 			}
-		else if ( strcmp(argv[i], "do") == 0 && (state == 0 || state == 2) )
+		else if ( strcmp(argv[i], "do") == 0 && (state == 0 || state > 1) )
 			state = 1;
 		else {
 			switch ( state ) {
@@ -572,11 +588,12 @@ int main(int argc, char **argv)
 				break;
 			case 1:	list_add(&cmds_list, argv[i]); break;
 			case 2:	list_add(&excl_list, argv[i]); break;
+			case 3:	list_add(&excg_list, argv[i]); break;
 				}
 			}
 		}
 
-	if ( state == 0 || state == 2 ) { // syntax error
+	if ( state == 0 || state > 1 ) { // syntax error
 		puts("`do' keyword missing; run `dof -h' for help.");
 		return 1;
 		}
@@ -605,6 +622,25 @@ int main(int argc, char **argv)
 			}
 	    }
 
+	// build fnmatch table
+	if ( excg_list.root ) {
+		int		i;
+		node_t	*cur;
+
+		ge_count = 0;
+		cur = excg_list.root;
+		while ( cur ) {
+			ge_count ++;
+			cur = cur->next;
+			}
+		ge_table = (charp_t *) malloc(sizeof(charp_t) * ge_count);
+		for ( i = 0, cur = excg_list.root; i < ge_count; i ++, cur = cur->next ) {
+			ge_table[i] = (charp_t) malloc(sizeof(charp_t));
+		    ge_table[i] = strdup(cur->str);
+			}
+	    }
+
+	// execute
 	if ( flags & 0x10 )
 		exit_status = execute_indir(flags);
 	else
@@ -616,7 +652,12 @@ int main(int argc, char **argv)
 		free(re_table[i]);
 		}
 	free(re_table);
-	
+
+	for ( i = 0; i < ge_count; i ++ )
+		free(ge_table[i]);
+	free(ge_table);
+
+	list_clear(&excg_list);
 	list_clear(&excl_list);
 	list_clear(&file_list);
 	list_clear(&cmds_list);
