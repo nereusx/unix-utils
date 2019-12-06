@@ -6,6 +6,11 @@
  * this software is released under GPLv3 or newer license
  */
 
+/* Enable GNU extensions in fnmatch.h.  */
+//#ifndef _GNU_SOURCE
+//	#define _GNU_SOURCE        1
+//#endif
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
