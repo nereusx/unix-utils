@@ -28,22 +28,28 @@
 #include "list.h"
 #include "file.h"
 
-static list_t file_list;
-static list_t cmds_list;
-static list_t rcpt_list;
-static list_t patt_list;
-static list_t excl_list;
-static list_t excg_list;
+// options - flags
+#define OFL_EXEC    0x01	// execute commands (otherwise it is just displays)
+#define OFL_FORCE   0x02	// force: on error continue
+#define OFL_PLAIN   0x04	// files, plain files only
+#define OFL_DIREC   0x08	// files, directories only
+#define OFL_RECURS  0x10	// recursive loop into subdirectories
 
-typedef char *	char_p;
+static list_t cmds_list;	// list of commands
+static list_t recp_list;	// recipes
+static list_t incl_list;	// wc-patterns include list
+static list_t regx_list;	// regex exclude list
+static list_t excl_list;	// wc-patterns exclude list
 
-static int		re_count = 0;
-static regex_t	**re_table;
-static int		ge_count = 0;
-static char_p	*ge_table;
+static void *stack[256];	// the stack storage
+static void **sp = stack;	// stack pointer (top)
+#define push(p) *sp ++ = p
+#define pop()   -- sp
+#define ppop()  *pop()
+#define peek()  sp[-1]
 
 //
-static const char *exec_expr(const char *source, const char *data)
+static const char *expand_prc(const char *source, const char *data)
 {
 	static char buf[LINE_MAX];
 	char args[LINE_MAX], *tp, *ap;
@@ -68,11 +74,9 @@ static const char *exec_expr(const char *source, const char *data)
 	p ++;
 	while ( p && *p == ':' ) {
 		p ++;
-		next = strchr(p, ':');
-		if ( next )	{
+		if ( (next = strchr(p, ':')) != NULL ) {
 			strcpy(args, p+1);
-			tp = strchr(args, ':');
-			if ( tp )
+			if ( (tp = strchr(args, ':')) != NULL )
 				*tp = '\0';
 			}
 		else
@@ -168,30 +172,140 @@ static char *dof(const char *fmt, const char *data)
 						break;
 					}
 				*bp = '\0';
-				v = exec_expr(block, data);
+				v = expand_prc(block, data);
 				while ( *v )	*d ++ = *v ++;
 				}
 			else {
 				block[0] = *p;
 				block[1] = '\0';
-				v = exec_expr(block, data);
+				v = expand_prc(block, data);
 				while ( *v )	*d ++ = *v ++;
 				}
 			}
-			
-		// not a command? just copy
-		else
+		else // not a command? just copy
 			*d ++ = *p;
+		if ( *p ) p ++; // next p
+		}
+	*d = '\0';	// close string
+	return dest;
+}
 
-		// next
-		if ( *p )
-			p ++;
+// wclist callback; append file to the item list
+int fl_append(const char *name)
+{
+	list_append((list_t *) peek(), name);
+	return 0;
+}
+
+// wclist callback; remove file from the item list
+int fl_remove(const char *name)
+{
+	list_remove((list_t *) peek(), name);
+	return 0;
+}
+
+// execute
+int execute(int flags)
+{
+	char	*cmds, *cmdbuf;
+	char	*cwd = (char *) malloc(PATH_MAX);
+	int		ignore, exit_status = 0;
+	list_node_t	*cur, *reptr;
+	struct stat st;
+	list_t	*items = list_create();
+	
+	push(items);
+	getcwd(cwd, PATH_MAX);
+//	printf("\nDIR: %s\n", cwd);
+	
+	// select files
+	cur = incl_list.root;
+	while ( cur ) {
+		if ( iswcpat(cur->key) )
+			wclist(cur->key, fl_append);
+		else
+			fl_append(cur->key);
+		cur = cur->next;
 		}
 
-	// close destination string
-	*d = '\0';
+	// exclude files
+	cur = excl_list.root;
+	while ( cur ) {
+		if ( iswcpat(cur->key) )
+			wclist(cur->key, fl_remove);
+		else
+			fl_remove(cur->key);
+		cur = cur->next;
+		}
+		
+	// for each item in the list
+	cur  = items->root;
+	cmds = list_to_string(&cmds_list, " ");
+	while ( cur ) {	
+		ignore = 0;
 
-	return dest;
+		// exclude items by regex
+		reptr = regx_list.root;
+		while ( reptr ) {
+			if ( match_regex((regex_t *) reptr->data, cur->key) ) {
+				ignore ++;
+				break;
+				}
+			reptr = reptr->next;
+			}
+		
+		// recursive loop into subdirectories
+		if ( !ignore && (flags & OFL_RECURS) ) { 
+			if ( stat(cur->key, &st) == 0 ) {
+				if ( S_ISDIR(st.st_mode) ) {
+					push(cwd);
+					if ( chdir(cur->key) == 0 ) {
+						exit_status = execute(flags);
+						if ( exit_status && (flags & OFL_FORCE) == 0 ) { // not force-option
+							pop();
+							break;
+							}
+						}
+					else
+						fprintf(stderr, "change working directory to '%s' failed.\n", cur->key);
+					chdir(ppop());
+					}
+				}
+			}
+			
+		// check file attributes
+		if ( !ignore && (flags & (OFL_PLAIN | OFL_DIREC)) ) { // file attribute check
+			if ( stat(cur->key, &st) == 0 )
+				ignore = ( (flags & OFL_PLAIN) && (!S_ISREG(st.st_mode)) ) ||
+						 ( (flags & OFL_DIREC) && (!S_ISDIR(st.st_mode)) );
+			}
+			
+		//
+		if ( ignore )
+			{ cur = cur->next; continue; }
+			
+		// execute
+		cmdbuf = dof(cmds, cur->key);
+		if ( (flags & OFL_EXEC) == 0 ) // not execute-option
+			fprintf(stdout, "%s\n", cmdbuf);
+		else {
+			if ( (exit_status = system(cmdbuf)) != 0 ) {
+				if ( (flags & OFL_FORCE) == 0 ) { // not force-option
+					free(cmdbuf);
+					break;
+					}
+				}
+			}
+		free(cmdbuf);
+		
+		// next
+		cur = cur->next;
+		}
+	
+	pop();
+	list_destroy(items);
+	free(cwd);
+	return exit_status;
 }
 
 // read_conf() callback
@@ -203,7 +317,7 @@ int conf_parser(char *source)
 	if ( *p == ':' ) {
 		*p ++ = '\0';
 		while ( *p == ' ' || *p == '\t' ) p ++;
-		list_addp(&rcpt_list, source, p);
+		list_addp(&recp_list, source, p);
 		}
 	return 0;
 }
@@ -221,8 +335,8 @@ Usage: dof [list] [-x patterns] do [commands]\n\
 \n\
 Options:\n\
 \t-e\texecute; dof displays what commands would be run, this option executes them.\n\
-\t-x\texclude regex patterns; the excluded list always has priority.\n\
-\t-g\texclude glob patterns; the excluded list always has priority.\n\
+\t-x\texclude glob patterns; the excluded list always has priority.\n\
+\t-g\texclude regex patterns; the excluded list always has priority.\n\
 \t-r\trecursive execution of commands into sub-directories.\n\
 \t-f\tforce non-stop; dof stops on error, this option forces dof to ignore errors.\n\
 \t-p\tplain files only; directories, devices, etc are ignored.\n\
@@ -260,153 +374,35 @@ Written by Nicholas Christopoulos <mailto:nereus@freemail.gr>\n\
 ";
 
 //
-static int pass_exclude_list(const char *src)
-{
-	int	i;
-	
-	for ( i = 0; i < re_count; i ++ ) {
-		if ( match_regex(re_table[i], src) )
-			return 0;
-		}
-	for ( i = 0; i < ge_count; i ++ ) {
-//		if ( fnmatch(ge_table[i], src, FNM_PATHNAME | FNM_EXTMATCH) == 0 )
-		if ( fnmatch(ge_table[i], src, FNM_PATHNAME | FNM_PERIOD) == 0 )
-			return 0;
-		}
-	return 1;
-}
-
-// execute
-int execute(int flags)
-{
-	char	*cmds, *cmdbuf;
-	list_node_t	*cur;
-	struct stat st;
-	int exit_status = 0;
-	
-	cmds = list_to_string(&cmds_list, " ");
-
-	// select files
-	list_clear(&file_list);
-	cur = patt_list.root;
-	while ( cur ) {
-		if ( has_wildcards(cur->key) )
-			list_addwc(&file_list, cur->key);
-		else
-			list_add(&file_list, cur->key);
-		cur = cur->next;
-		}
-
-	// for each file
-	cur = file_list.root;
-	while ( cur ) {
-
-		// check file attributes
-		if ( flags & 0x04 || flags & 0x08 ) { // file attribute check
-			if ( stat(cur->key, &st) == 0 ) {
-				if ( flags & 0x04 ) { // plain files only
-					if ( ! S_ISREG(st.st_mode) ) {
-						cur = cur->next;
-						continue;
-						}
-					}
-				if ( flags & 0x08 ) { // directories only
-					if ( ! S_ISDIR(st.st_mode) ) {
-						cur = cur->next;
-						continue;
-						}
-					}
-				}
-			}
-
-		if ( pass_exclude_list(cur->key) )	{
-			// execute
-			cmdbuf = dof(cmds, cur->key);
-			if ( (flags & 0x01) == 0 ) // not execute-option
-				fprintf(stdout, "%s\n", cmdbuf);
-			else {
-				if ( (exit_status = system(cmdbuf)) != 0 ) {
-					if ( (flags & 0x02) == 0 ) { // not force-option
-						free(cmdbuf);
-						break;
-						}
-					}
-				}
-			free(cmdbuf);
-			}
-		cur = cur->next;
-		}
-	
-	return exit_status;
-}
-
-// execute the commands for each subdirectory
-int execute_indir(int flags)
-{
-	struct dirent *p_dirent;
-	DIR	*p_dir;
-	int exit_status = 0;
-	struct stat st;
-		
-	if ( (exit_status = execute(flags)) != 0 ) {
-		if ( (flags & 0x02) == 0 ) // not force-option
-			return exit_status;
-		}
-	if ( (p_dir = opendir(".")) == NULL )
-		return exit_status;
-	while ( (p_dirent = readdir(p_dir)) != NULL ) {
-		if ( strcmp(p_dirent->d_name, ".") == 0 || strcmp(p_dirent->d_name, "..") == 0 )
-			continue;
-		if ( stat(p_dirent->d_name, &st) == 0 ) {
-			if ( S_ISDIR(st.st_mode) ) {
-				if ( pass_exclude_list(p_dirent->d_name) ) {
-					if ( chdir(p_dirent->d_name) == 0 ) {
-						exit_status = execute_indir(flags);
-						chdir("..");
-						if ( exit_status && (flags & 0x02) == 0 ) // not force-option
-							break;
-						}
-					else
-						fprintf(stderr, "change dir to %s failed.\n", p_dirent->d_name);					
-					}
-				}
-			}
-		}
-	closedir(p_dir);
-	return exit_status;
-}
-
-//
 int main(int argc, char **argv)
 {
-	int		flags = 0, state = 0, exit_status = 0;
-	int		i;
+	int		flags = 0, stage = 0, exit_status = 0;
+	int		i, status;
 	list_node_t	*cur;
 	char buf[LINE_MAX];
-
-	list_init(&file_list);
+	
 	list_init(&cmds_list);
-	list_init(&rcpt_list);
-	list_init(&patt_list);
+	list_init(&recp_list);
+	list_init(&incl_list);
+	list_init(&regx_list);
 	list_init(&excl_list);
-	list_init(&excg_list);
 
-	read_conf("dof", conf_parser);
+	readconf("dof", conf_parser);
 	
 	for ( i = 1; i < argc; i ++ ) {
-		if ( argv[i][0] == '-' && (state == 0 || state > 1) ) {
+		if ( argv[i][0] == '-' && (stage == 0 || stage > 1) ) {
 
 			// one minus, read from stdin
 			if ( argv[i][1] == '\0' ) {
 				while ( fgets(buf, LINE_MAX, stdin) )	{
-					switch ( state ) {
+					switch ( stage ) {
 					case 0:
 						if ( strcmp(filename(argv[i]), ".") != 0 && strcmp(filename(argv[i]), "..") != 0 )
-							list_add(&file_list, buf);
+							list_add(&incl_list, buf);
 						break;
 					case 1:	list_add(&cmds_list, buf);	break;
-					case 2:	list_add(&excl_list, buf);	break;
-					case 3:	list_add(&excg_list, buf);	break;
+					case 2:	list_add(&regx_list, buf);	break;
+					case 3:	list_add(&excl_list, buf);	break;
 						}
 					}
 				}
@@ -414,13 +410,13 @@ int main(int argc, char **argv)
 			// check options
 			for ( int j = 1; argv[i][j]; j ++ ) {
 				switch ( argv[i][j] ) {
-				case 'e': flags |= 0x01; break;
-				case 'f': flags |= 0x02; break;
-				case 'p': flags |= 0x04; break;
-				case 'd': flags |= 0x08; break;
-				case 'r': flags |= 0x10; break;
-				case 'x': state = 2; break;
-				case 'g': state = 3; break;
+				case 'e': flags |= OFL_EXEC; break;
+				case 'f': flags |= OFL_FORCE; break;
+				case 'p': flags |= OFL_PLAIN; break;
+				case 'd': flags |= OFL_DIREC; break;
+				case 'r': flags |= OFL_RECURS; break;
+				case 'g': stage = 2; break;
+				case 'x': stage = 3; break;
 				case 'h': puts(usage); return 1;
 				case 'v': puts(verss); return 1;
 				case 's': // add sequence of numbers
@@ -454,11 +450,11 @@ int main(int argc, char **argv)
 						// add
 						for ( double f = start; f <= last; f += step ) {
 							sprintf(buf, "%g", f);
-							switch ( state ) {
-							case 0:	list_add(&patt_list, buf);	break;
+							switch ( stage ) {
+							case 0:	list_add(&incl_list, buf);	break;
 							case 1:	list_add(&cmds_list, buf); break;
-							case 2:	list_add(&excl_list, buf); break;
-							case 3:	list_add(&excg_list, buf); break;
+							case 2:	list_add(&regx_list, buf); break;
+							case 3:	list_add(&excl_list, buf); break;
 								}
 							}
 
@@ -467,18 +463,18 @@ int main(int argc, char **argv)
 						break;
 				case '-':
 						// execute recipe
-						cur = rcpt_list.root;
+						cur = recp_list.root;
 						while ( cur ) {
 							if ( strcmp(cur->key, argv[i]+2) == 0 ) {
 								char cmd[LINE_MAX];
 								char opt[64];
 								opt[0] = '\0';
-								if ( flags & 0x01 ) strcat(opt, "-e ");
-								if ( flags & 0x02 ) strcat(opt, "-f ");
-								if ( flags & 0x04 ) strcat(opt, "-p ");
-								if ( flags & 0x08 ) strcat(opt, "-d ");
-								if ( flags & 0x10 ) strcat(opt, "-r ");
-								snprintf(cmd, LINE_MAX, "dof %s %s", opt, cur->data);
+								if ( flags & OFL_EXEC   ) strcat(opt, "-e ");
+								if ( flags & OFL_FORCE  ) strcat(opt, "-f ");
+								if ( flags & OFL_PLAIN  ) strcat(opt, "-p ");
+								if ( flags & OFL_DIREC  ) strcat(opt, "-d ");
+								if ( flags & OFL_RECURS ) strcat(opt, "-r ");
+								snprintf(cmd, LINE_MAX, "dof %s %s", opt, (char *) cur->data);
 								return system(cmd);
 								}
 							cur = cur->next;
@@ -486,9 +482,9 @@ int main(int argc, char **argv)
 						return 1;
 				case 'l':
 						// list recipes
-						cur = rcpt_list.root;
+						cur = recp_list.root;
 						while ( cur ) {
-							printf("%s: (%s)\n", cur->key, cur->data);
+							printf("%s: (%s)\n", cur->key, (char *) cur->data);
 							cur = cur->next;
 							}
 						return 0;
@@ -499,90 +495,54 @@ int main(int argc, char **argv)
 					}
 				}
 			}
-		else if ( strcmp(argv[i], "do") == 0 && (state == 0 || state > 1) )
-			state = 1;
+		else if ( strcmp(argv[i], "do") == 0 && (stage == 0 || stage > 1) )
+			stage = 1;
 		else {
-			switch ( state ) {
+			switch ( stage ) {
 			case 0:
 				if ( strcmp(filename(argv[i]), ".") != 0 && strcmp(filename(argv[i]), "..") != 0 )
-					list_add(&patt_list, argv[i]);
+					list_add(&incl_list, argv[i]);
 				break;
 			case 1:	list_add(&cmds_list, argv[i]); break;
-			case 2:	list_add(&excl_list, argv[i]); break;
-			case 3:	list_add(&excg_list, argv[i]); break;
+			case 2:	list_add(&regx_list, argv[i]); break;
+			case 3:	list_add(&excl_list, argv[i]); break;
 				}
 			}
 		}
 
-	if ( state == 0 || state > 1 ) { // syntax error
+	if ( stage == 0 || stage > 1 ) { // syntax error
 		puts("`do' keyword missing; run `dof -h' for help.");
 		return 1;
 		}
 
 	// build regex table
-	if ( excl_list.root ) {
-		int		i, status;
-		list_node_t	*cur;
-
-		re_count = 0;
-		cur = excl_list.root;
-		while ( cur ) {
-			re_count ++;
-			cur = cur->next;
+	cur = regx_list.root;
+	while ( cur ) {
+		cur->data = (void *) malloc(sizeof(regex_t));
+		status = regcomp((regex_t *) (cur->data), cur->key, REG_EXTENDED|REG_NEWLINE);
+		if ( status != 0 ) {
+			char error_message[LINE_MAX];
+			regerror(status, (regex_t *) (cur->data), error_message, LINE_MAX);
+			printf("Regex error compiling '%s': %s\n", cur->key, error_message);
+			return 1;
 			}
-		re_table = (regex_t **) malloc(sizeof(regex_t*) * re_count);
-		for ( i = 0, cur = excl_list.root; i < re_count; i ++, cur = cur->next ) {
-			re_table[i] = (regex_t *) malloc(sizeof(regex_t));
-		    status = regcomp(re_table[i], cur->key, REG_EXTENDED|REG_NEWLINE);
-		    if ( status != 0 ) {
-				char error_message[LINE_MAX];
-				regerror(status, re_table[i], error_message, LINE_MAX);
-		        printf("Regex error compiling '%s': %s\n", cur->key, error_message);
-        		return 1;
-				}
-			}
-	    }
-
-	// build fnmatch table
-	if ( excg_list.root ) {
-		int		i;
-		list_node_t	*cur;
-
-		ge_count = 0;
-		cur = excg_list.root;
-		while ( cur ) {
-			ge_count ++;
-			cur = cur->next;
-			}
-		ge_table = (char_p *) malloc(sizeof(char_p) * ge_count);
-		for ( i = 0, cur = excg_list.root; i < ge_count; i ++, cur = cur->next ) {
-			ge_table[i] = (char_p) malloc(sizeof(char_p));
-		    ge_table[i] = strdup(cur->key);
-			}
-	    }
+		cur = cur->next;
+		}
 
 	// execute
-	if ( flags & 0x10 )
-		exit_status = execute_indir(flags);
-	else
-		exit_status = execute(flags);
+	exit_status = execute(flags);
 
 	// cleanup
-	for ( i = 0; i < re_count; i ++ ) {
-		regfree(re_table[i]);
-		free(re_table[i]);
+	cur = regx_list.root;
+	while ( cur ) {
+		regfree((regex_t *) (cur->data));
+		cur = cur->next;
 		}
-	free(re_table);
 
-	for ( i = 0; i < ge_count; i ++ )
-		free(ge_table[i]);
-	free(ge_table);
-
-	list_clear(&excg_list);
 	list_clear(&excl_list);
-	list_clear(&file_list);
+	list_clear(&regx_list);
 	list_clear(&cmds_list);
-	list_clear(&rcpt_list);
-	list_clear(&patt_list);
+	list_clear(&recp_list);
+	list_clear(&incl_list);
 	return exit_status;
 }

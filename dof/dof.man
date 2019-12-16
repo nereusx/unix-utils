@@ -26,86 +26,87 @@ dof \- (do-for) executes commands for each item of a list
 	# display colors on terminal
 	dof -e -s:0..15 do 'tput setaf %f; echo colour%f; tput op;'
 	
-	# remove all files except *.c and *.tex
-	dof -e * -g *.{c,tex} do 'rm %f'
+	# remove all files except *.pdf and *.tex
+	dof -e * -g *.{pdf,tex} do 'rm %f'
 .EE
 .SH OPTIONS
 .TP
 .BR \-
-read from stdin.
+Read from stdin.
 .TP
 .BR \-e
-execute; \fIdof\fR displays what commands would be run, this option executes them.
+Execute; \fIdof\fR displays what commands would be run, this option executes them.
 .TP
 .BR \-x
-exclude list; after \fB-x\fR are following regex's patterns to exclude items from the previous list.
+Exclude list; after \fB-x\fR are following glob's patterns to exclude items from the previous list.
+When the pattern is unquoted it will expanded by the shell otherwise `glob()' will be used in each directory.
+See
+.BR glob (3)
+.TP
+.BR \-g
+Exclude list; after \fB-g\fR are following regex's patterns to exclude items from the previous list.
 Since the \fIdof\fR parameters can be anything, this is no glob file-patterns but regex's patterns.
 Example `*.c' file-pattern should be written as `.*\\.c'.
 .TP
-.BR \-g
-exclude list; after \fB-g\fR are following glob's patterns to exclude items from the previous list (beta).
-When the pattern is unquoted it will expanded by the shell otherwise \fIfnmatch\fR() will be used. In this
-case '()' and '{}' will be not expand. See
-.BR fnmatch (3)
-.TP
 .BR \-r
-recursive execution into subdirectories
+Recursive execution into subdirectories. You have to be sure that you type wildcard patterns quoted,
+otherwise the wildcards will expanded by the shell in the first directory.
 .TP
 .BR \-f
-force non-stop; \fIdof\fR stops on error (exit code != 0), this option forces \fIdof\fR to ignore them.
+Force non-stop; \fIdof\fR stops on error (exit code != 0), this option forces \fIdof\fR to ignore them.
 .TP
 .BR \-p
-plain files only; directories, devices, etc are ignored.
+Plain files only; directories, devices, etc are ignored.
 .TP
 .BR \-d
-directories only; plain-files, devices, etc are ignored.
+Directories only; plain-files, devices, etc are ignored.
 .TP
 .BR \-s:F..L[..S]
-adds a sequence of numbers (float or integer).
+Adds a sequence of numbers (float or integer).
 \fIF\fR for first, \fIL\fR for last and optionally \fIS\fR for step.
 This option can be repeated many times.
 .TP
 .BR \-l
-print recipes (/etc/dof.conf, ~/.dof)
+Print recipes (/etc/dof.conf, ~/.dof)
 .TP
 .BR \-\-\fIrecipe\fR
-execute recipe (ex: dof --to-ogg)
+Execute recipe (ex: dof --to-ogg)
 .TP
 .BR \-h
-help screen.
+Help screen.
 .TP
 .BR \-v
-version and license information.
+Version and license information.
 .SH VARIABLES
 In the `commands' you can use several program's variables. Variables are recognized by prefix '%'.
 Variables and its modifiers can be included inside '{' '}' block or '(' ')' block.
 .TP
 .BR %f
-the full string (or filename)
+The full string (or filename)
 .TP
 .BR %b
-the basename (no directory, no extension)
+The basename (no directory, no extension)
 .TP
 .BR %d
-the dirname (only the directory without the '/' suffix) 
+The dirname (only the directory without the '/' suffix) 
 .TP
 .BR %e
-the extension without '.' prefix
+The extension without '.' prefix
 .TP
 .BR %%
-the character '%'.
+The character '%'.
 .SH MODIFIERS
 Modifiers defined by ':' that follows a variable and modifies the result string.
 You can have unlimited number of modifiers.
 .TP
 .BR l\fIc...\fR
-returns the string until the the first occurence of character 'c'.
+Returns the string until the the first occurence of character 'c'.
 .TP
 .BR r\fIc...\fR
-returns the string until the last occurence of character 'c'.
+Returns the string until the last occurence of character 'c'.
 .TP
 .BR i\fIs\fR
-returns the string until the occurence of string 's'.
+Returns the string until the occurence of string 's'.
 \# .TP
 \# .BR %(expr)
 \# string processing expression... not used yet.
@@ -123,9 +124,8 @@ Example:
 .TP
 Items '.' and '..' are ignored.
 .SH SEE ALSO
-.BR regex (7),
 .BR glob (3),
-.BR fnmatch (3)
+.BR regex (7)
 .PP
 .SH AUTHOR
 .MT nereus@\:freemail.gr

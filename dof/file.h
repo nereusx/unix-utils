@@ -34,15 +34,15 @@ extern "C" {
 #include <unistd.h>
 #include <limits.h>
 #include <dirent.h>
-#include <fnmatch.h>
 	
-int has_wildcards(const char *filename);
-char *basename(const char *source);
+int		iswcpat(const char *filename);
+char	*basename(const char *source);
 const char *filename(const char *source);
-char *dirname(const char *source);
-char *extname(const char *source);
+char	*dirname(const char *source);
+char	*extname(const char *source);
 
-int	read_conf(const char *appname, int (*parser)(char *));
+void	wclist(const char *pattern, int (*callback)(const char *));
+int		readconf(const char *appname, int (*parser)(char *));
 
 #ifdef __cplusplus
 }

@@ -28,14 +28,16 @@ extern "C" {
 
 #include <string.h>
 #include <stdlib.h>
+#include "str.h"
 
 typedef struct {
 	char *key;
-	char *data;
+	void *data;
 	void *next;
 	} list_node_t;
 
 typedef struct {
+	int	flags;
 	list_node_t *root;
 	list_node_t *tail;
 	} list_t;
@@ -49,10 +51,14 @@ void list_clear(list_t *list);
 #endif
 
 list_node_t *list_add (list_t *list, const char *key);
+void list_remove(list_t *list, const char *key);
 list_node_t *list_addp(list_t *list, const char *key, const char *value);
-void list_addwc(list_t *list, const char *pattern);
+void list_delrec(list_t *list, regex_t *re);
 
 char *list_to_string(list_t *list, const char *delim);
+
+#define list_append(l,k)	list_add((l),(k))
+#define list_del(l,k)		list_remove((l),(k))
 
 #ifdef __cplusplus
 }

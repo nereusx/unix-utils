@@ -18,11 +18,14 @@
  *
  * 	Written by Nicholas Christopoulos <nereus@freemail.gr>
  */
+
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <glob.h>
 #include "list.h"
+
+#define IF_DOTS(s) if((s)[0]=='.' && ((s)[1]=='\0' || ((s)[1]=='.' && (s)[2]=='\0')))
 
 /*
  * add node to list
@@ -91,28 +94,49 @@ void list_clear(list_t *list)
 }
 
 /*
- * add node to list
- * this stores wildcard matches
+ * remove node by key from list
  */
-void list_addwc(list_t *list, const char *pattern)
+void list_remove(list_t *list, const char *key)
 {
-	glob_t globbuf;
-	int flags = GLOB_DOOFFS;
-	#ifdef GLOB_TILDE
-	flags |= GLOB_TILDE;
-	#endif
-	#ifdef GLOB_BRACE
-	flags |= GLOB_BRACE;
-	#endif
-
-	globbuf.gl_offs = 0;
-	if ( glob(pattern, flags, NULL, &globbuf) == 0 ) {
-		for ( int i = 0; globbuf.gl_pathv[i]; i ++ ) {
-			const char *name = globbuf.gl_pathv[i];
-			if ( ! (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) )
-				list_add(list, name);
+	list_node_t *pre = NULL, *cur = list->root;
+    
+	while ( cur ) {
+		if ( strcmp(cur->key, key) == 0 ) {
+			if ( pre ) {
+				if ( cur == list->tail ) // last node
+					list->tail = pre;
+				pre->next = cur->next;
+				}
+			else { // first node
+				if ( list->root == list->tail ) // the only one node
+					list->tail = cur->next;
+				list->root = cur->next;
+				}
+			free(cur->key);
+			free(cur);
+			break;
 			}
-		globfree(&globbuf);
+		pre = cur;
+		cur = cur->next;
+		}
+}
+
+/*
+ * remove node from list
+ * this removes regex compiled matches
+ */
+void list_delrec(list_t *list, regex_t *re)
+{
+	list_node_t	*cur = list->root, *next;
+	
+	while ( cur ) {
+		if ( match_regex(re, cur->key) ) { 
+			next = cur->next;
+			list_remove(list, cur->key);
+			cur = next;
+			continue;
+			}
+		cur = cur->next;
 		}
 }
 

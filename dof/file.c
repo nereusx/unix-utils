@@ -24,10 +24,12 @@
 #include "str.h"
 #include "file.h"
 
+#define IF_DOTS(s) if((s)[0]=='.' && ((s)[1]=='\0' || ((s)[1]=='.' && (s)[2]=='\0')))
+
 /*
  * returns true if the "filename" has wildcards
  */
-int has_wildcards(const char *filename)
+int iswcpat(const char *filename)
 {
 	const char *p = filename;
 	
@@ -44,6 +46,32 @@ int has_wildcards(const char *filename)
 		p ++;
 		}
 	return 0;
+}
+
+/*
+ * wildcard matches
+ */
+void wclist(const char *pattern, int (*callback)(const char *))
+{
+	glob_t globbuf;
+	int flags = GLOB_DOOFFS;
+	#ifdef GLOB_TILDE
+	flags |= GLOB_TILDE;
+	#endif
+	#ifdef GLOB_BRACE
+	flags |= GLOB_BRACE;
+	#endif
+
+	globbuf.gl_offs = 0;
+	if ( glob(pattern, flags, NULL, &globbuf) == 0 ) {
+		for ( int i = 0; globbuf.gl_pathv[i]; i ++ ) {
+			const char *name = globbuf.gl_pathv[i];
+			IF_DOTS(name) continue;
+			if ( callback(name) )
+				break;
+			}
+		globfree(&globbuf);
+		}
 }
 
 /*
@@ -111,7 +139,7 @@ const char *filename(const char *file)
 }
 
 // read configuration files
-int	read_conf(const char *appname, int (*parser)(char *))
+int	readconf(const char *appname, int (*parser)(char *))
 {
 	FILE	*fp;
 	char	buf[LINE_MAX], *p;
