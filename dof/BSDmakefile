@@ -3,15 +3,9 @@
 MANDIR  = /usr/share/man/man1
 INSTALL = /usr/bin
 CFLAGS  = -O -Wall -Wno-unused-result -static
-CC      = gcc
 
-all: dof
-
-clean:
-	rm dof
-
-dof: dof.c list.c file.c
-	$(CC) $(CFLAGS) dof.c -o dof
+dof: dof.c list.h list.c file.h file.c str.h str.c
+	$(CC) $(CFLAGS) dof.c file.c list.c str.c -o dof
 
 dof.1.gz: dof.man
 	cp dof.man dof.1
@@ -22,6 +16,9 @@ html: dof.man
 
 pdf: dof.man
 	groff dof.man -Tpdf -man > dof.pdf
+
+clean:
+	-rm dof *.o dof.1*
 
 install: dof dof.1.gz
 	install -m 755 -o root -g wheel -s dof $(INSTALL)

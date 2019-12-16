@@ -1,7 +1,7 @@
 \# exec: groff dof.1 -Tascii -man | less
 \#
 \# .TH cmd-name section [date [version [page-descr]]]
-.TH dof 1 "6 Dec 2019" "v1.5" "User Commands"
+.TH dof 1 "31 Dec 2019" "v1.6" "User Commands"
 .SH NAME
 dof \- (do-for) executes commands for each item of a list
 .SH SYNOPSIS

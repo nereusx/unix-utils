@@ -6,25 +6,9 @@
  * this software is released under GPLv3 or newer license
  */
 
-/* Enable GNU extensions in fnmatch.h.  */
-//#ifndef _GNU_SOURCE
-//	#define _GNU_SOURCE        1
-//#endif
-
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <limits.h>
-#include <dirent.h>
-#include <regex.h>
-#include <fnmatch.h>
-#include <glob.h>
-#include "list.c"
-#include "file.c"
+#include "str.h"
+#include "list.h"
+#include "file.h"
 
 static list_t file_list;
 static list_t cmds_list;
@@ -33,25 +17,12 @@ static list_t patt_list;
 static list_t excl_list;
 static list_t excg_list;
 
-typedef char * charp_t;
+typedef char *	char_p;
 
 static int		re_count = 0;
 static regex_t	**re_table;
 static int		ge_count = 0;
-static charp_t	*ge_table;
-
-//
-static int match_regex(regex_t *r, const char *to_match)
-{
-	const char *p = to_match;
-	const int n_matches = 1;
-	regmatch_t m[n_matches];
-
-	int nomatch = regexec(r, p, n_matches, m, 0);
-	if ( nomatch )
-		return 0;
-	return 1;
-}
+static char_p	*ge_table;
 
 //
 static const char *exec_expr(const char *source, const char *data)
@@ -222,47 +193,18 @@ static char *dof(const char *fmt, const char *data)
 	return dest;
 }
 
-// read configuration files
-static void	read_conf()
+// read_conf() callback
+int conf_parser(char *source)
 {
-	FILE	*fp;
-	char	buf[LINE_MAX], *p, *key, *data;
-	char	file[PATH_MAX];
-	static	int readconf_init = 0;
+	char *p = source;
 
-	if ( readconf_init ) return;
-	readconf_init = 1;
-	
-	for ( int i = 0; i < 2; i ++ ) {
-		switch ( i ) {
-		case 0: strcpy(file, "/etc/dof.conf"); break;
-		case 1: strcpy(file, getenv("HOME")); strcat(file, "/.dof"); break;
-			}
-		if ( (fp = fopen(file, "rt")) != NULL ) {
-			while ( fgets(buf, LINE_MAX, fp) ) {
-				p = buf;
-				while ( *p == ' ' || *p == '\t' ) p ++;
-				if ( *p == '\n' || *p == '\0' || *p == '#' )
-					continue;
-				key = p;
-				while ( *p ) {
-					if ( *p == ':' )
-						break;
-					p ++;
-					}
-				if ( *p == ':' ) {
-					*p = '\0';
-					p ++;
-					while ( *p == ' ' || *p == '\t' ) p ++;
-					data = p;
-					if ( data[strlen(data)-1] == '\n' )
-						data[strlen(data)-1] = '\0';
-					list_addpair(&rcpt_list, key, data);
-					}
-				}
-			fclose(fp);
-			}
+	while ( *p && *p != ':' )	p ++;
+	if ( *p == ':' ) {
+		*p ++ = '\0';
+		while ( *p == ' ' || *p == '\t' ) p ++;
+		list_addp(&rcpt_list, source, p);
 		}
+	return 0;
 }
 
 // --- main() ---
@@ -270,7 +212,7 @@ static void	read_conf()
 #define APP_DESCR \
 "dof (do-for) run commands for each element of 'list'."
 
-#define APP_VER "1.5"
+#define APP_VER "1.6"
 
 static const char *usage = "\
 Usage: dof [list] [-x patterns] do [commands]\n\
@@ -308,22 +250,13 @@ static const char *verss = "\
 dof version "APP_VER"\n\
 "APP_DESCR"\n\
 \n\
-Copyright (C) 2017-2019 Free Software Foundation, Inc.\n\
+Copyright (C) 2017-2020 Free Software Foundation, Inc.\n\
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.\n\
 This is free software: you are free to change and redistribute it.\n\
 There is NO WARRANTY, to the extent permitted by law.\n\
 \n\
 Written by Nicholas Christopoulos <mailto:nereus@freemail.gr>\n\
 ";
-
-// return a pointer to filename without the directory
-static const char *namep(const char *file)
-{
-	const char *p;
-	if ( (p = strrchr(file, '/')) != NULL )
-		return p + 1;
-	return file;
-}
 
 //
 static int pass_exclude_list(const char *src)
@@ -346,7 +279,7 @@ static int pass_exclude_list(const char *src)
 int execute(int flags)
 {
 	char	*cmds, *cmdbuf;
-	node_t	*cur;
+	list_node_t	*cur;
 	struct stat st;
 	int exit_status = 0;
 	
@@ -356,10 +289,10 @@ int execute(int flags)
 	list_clear(&file_list);
 	cur = patt_list.root;
 	while ( cur ) {
-		if ( has_wildcards(cur->str) )
-			list_addwc(&file_list, cur->str);
+		if ( has_wildcards(cur->key) )
+			list_addwc(&file_list, cur->key);
 		else
-			list_add(&file_list, cur->str);
+			list_add(&file_list, cur->key);
 		cur = cur->next;
 		}
 
@@ -369,7 +302,7 @@ int execute(int flags)
 
 		// check file attributes
 		if ( flags & 0x04 || flags & 0x08 ) { // file attribute check
-			if ( stat(cur->str, &st) == 0 ) {
+			if ( stat(cur->key, &st) == 0 ) {
 				if ( flags & 0x04 ) { // plain files only
 					if ( ! S_ISREG(st.st_mode) ) {
 						cur = cur->next;
@@ -385,9 +318,9 @@ int execute(int flags)
 				}
 			}
 
-		if ( pass_exclude_list(cur->str) )	{
+		if ( pass_exclude_list(cur->key) )	{
 			// execute
-			cmdbuf = dof(cmds, cur->str);
+			cmdbuf = dof(cmds, cur->key);
 			if ( (flags & 0x01) == 0 ) // not execute-option
 				fprintf(stdout, "%s\n", cmdbuf);
 			else {
@@ -443,29 +376,11 @@ int execute_indir(int flags)
 }
 
 //
-const char *getnum(const char *src, char *buf)
-{
-	const char *p = src;
-	char *d = buf;
-	while ( *p == ' ' || *p == '\t' ) p ++;
-	if ( *p == '+' )	p ++;
-	if ( *p == '-' )	*d ++ = *p ++;
-	
-	while ( isdigit(*p) )	*d ++ = *p ++;
-	if ( p[0] == '.' && isdigit(p[1]) ) {
-		*d ++ = *p ++;
-		while ( isdigit(*p) )	*d ++ = *p ++;
-		}
-	*d = '\0';
-	return p;
-}
-
-//
 int main(int argc, char **argv)
 {
 	int		flags = 0, state = 0, exit_status = 0;
 	int		i;
-	node_t	*cur;
+	list_node_t	*cur;
 	char buf[LINE_MAX];
 
 	list_init(&file_list);
@@ -475,6 +390,8 @@ int main(int argc, char **argv)
 	list_init(&excl_list);
 	list_init(&excg_list);
 
+	read_conf("dof", conf_parser);
+	
 	for ( i = 1; i < argc; i ++ ) {
 		if ( argv[i][0] == '-' && (state == 0 || state > 1) ) {
 
@@ -483,7 +400,7 @@ int main(int argc, char **argv)
 				while ( fgets(buf, LINE_MAX, stdin) )	{
 					switch ( state ) {
 					case 0:
-						if ( strcmp(namep(argv[i]), ".") != 0 && strcmp(namep(argv[i]), "..") != 0 )
+						if ( strcmp(filename(argv[i]), ".") != 0 && strcmp(filename(argv[i]), "..") != 0 )
 							list_add(&file_list, buf);
 						break;
 					case 1:	list_add(&cmds_list, buf);	break;
@@ -515,7 +432,7 @@ int main(int argc, char **argv)
 						p ++;
 
 						// get 'first'
-						p = getnum(p, buf);
+						p = parse_num(p, buf);
 						start = last = atof(buf);
 
 						// next number
@@ -523,13 +440,13 @@ int main(int argc, char **argv)
 						else { puts("example: dof -s:1..10"); return 1; }
 						
 						// get 'last'
-						p = getnum(p, buf);
+						p = parse_num(p, buf);
 						last = atof(buf);
 
 						// get 'step'
 						if ( p[0] == '.' && p[1] == '.' ) {
 							p += 2;
-							p = getnum(p, buf);
+							p = parse_num(p, buf);
 							step = atof(buf);
 							}
 							
@@ -549,10 +466,9 @@ int main(int argc, char **argv)
 						break;
 				case '-':
 						// execute recipe
-						read_conf();
 						cur = rcpt_list.root;
 						while ( cur ) {
-							if ( strcmp(cur->str, argv[i]+2) == 0 ) {
+							if ( strcmp(cur->key, argv[i]+2) == 0 ) {
 								char cmd[LINE_MAX];
 								char opt[64];
 								opt[0] = '\0';
@@ -569,10 +485,9 @@ int main(int argc, char **argv)
 						return 1;
 				case 'l':
 						// list recipes
-						read_conf();
 						cur = rcpt_list.root;
 						while ( cur ) {
-							printf("%s: (%s)\n", cur->str, cur->data);
+							printf("%s: (%s)\n", cur->key, cur->data);
 							cur = cur->next;
 							}
 						return 0;
@@ -588,7 +503,7 @@ int main(int argc, char **argv)
 		else {
 			switch ( state ) {
 			case 0:
-				if ( strcmp(namep(argv[i]), ".") != 0 && strcmp(namep(argv[i]), "..") != 0 )
+				if ( strcmp(filename(argv[i]), ".") != 0 && strcmp(filename(argv[i]), "..") != 0 )
 					list_add(&patt_list, argv[i]);
 				break;
 			case 1:	list_add(&cmds_list, argv[i]); break;
@@ -606,7 +521,7 @@ int main(int argc, char **argv)
 	// build regex table
 	if ( excl_list.root ) {
 		int		i, status;
-		node_t	*cur;
+		list_node_t	*cur;
 
 		re_count = 0;
 		cur = excl_list.root;
@@ -617,11 +532,11 @@ int main(int argc, char **argv)
 		re_table = (regex_t **) malloc(sizeof(regex_t*) * re_count);
 		for ( i = 0, cur = excl_list.root; i < re_count; i ++, cur = cur->next ) {
 			re_table[i] = (regex_t *) malloc(sizeof(regex_t));
-		    status = regcomp(re_table[i], cur->str, REG_EXTENDED|REG_NEWLINE);
+		    status = regcomp(re_table[i], cur->key, REG_EXTENDED|REG_NEWLINE);
 		    if ( status != 0 ) {
 				char error_message[LINE_MAX];
 				regerror(status, re_table[i], error_message, LINE_MAX);
-		        printf("Regex error compiling '%s': %s\n", cur->str, error_message);
+		        printf("Regex error compiling '%s': %s\n", cur->key, error_message);
         		return 1;
 				}
 			}
@@ -630,7 +545,7 @@ int main(int argc, char **argv)
 	// build fnmatch table
 	if ( excg_list.root ) {
 		int		i;
-		node_t	*cur;
+		list_node_t	*cur;
 
 		ge_count = 0;
 		cur = excg_list.root;
@@ -638,10 +553,10 @@ int main(int argc, char **argv)
 			ge_count ++;
 			cur = cur->next;
 			}
-		ge_table = (charp_t *) malloc(sizeof(charp_t) * ge_count);
+		ge_table = (char_p *) malloc(sizeof(char_p) * ge_count);
 		for ( i = 0, cur = excg_list.root; i < ge_count; i ++, cur = cur->next ) {
-			ge_table[i] = (charp_t) malloc(sizeof(charp_t));
-		    ge_table[i] = strdup(cur->str);
+			ge_table[i] = (char_p) malloc(sizeof(char_p));
+		    ge_table[i] = strdup(cur->key);
 			}
 	    }
 
