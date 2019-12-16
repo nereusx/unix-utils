@@ -11,6 +11,7 @@ extern "C" {
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <limits.h>
 #include <regex.h>
 
@@ -23,15 +24,21 @@ typedef struct {
 	int	alloc;			// allocation size (used for realloc)
 	} cwords_t;
 
-char *strnew(const char *source);
-const char *strfree(char *ptr);
-char *strset(char *base, const char *source);
-char *stradd(char *base, const char *source);
-char *strsize(char *base, int newsize);
-void strtolwr(char *buf);
-void strtoupr(char *buf);
-void strtotr(char *buf, char what, char with);
-void strtomtr(char *buf, const char *what, const char *with);
+char *stradd(char *str, const char *source);
+
+// pascaloids
+char *concat(const char *s1, ...);
+char *copy(const char *source, int index, int count);
+int	pos(const char *source, char c);
+int	strpos(const char *source, const char *what);
+char *insert(const char *source, int pos, const char *string);
+char *delete(const char *source, int pos, int count);	
+
+//
+#define strtotr(b,s,r)\
+	{ for(char *p=(b); *p; p ++) if (*p == (s)) *p = (r); }
+#define strtomtr(b,s,r)\
+	{ for(const char *p=(s); *p; p ++) strtotr((b), *p, (r)[p-(s)]); }
 
 // constant list of words
 cwords_t *cwords_create();
@@ -45,6 +52,7 @@ int match_regex(regex_t *r, const char *to_match);
 
 // parsing
 const char *parse_num(const char *src, char *buf);
+const char *parse_const(const char *src, const char *str);
 
 #ifdef __cplusplus
 }

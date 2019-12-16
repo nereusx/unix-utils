@@ -1,32 +1,8 @@
 /*
  */
 
+#include <assert.h>
 #include "str.h"
-
-// create a new string
-char *strnew(const char *source)
-{
-	if ( source )
-		return strdup(source);
-	return strdup("");
-}
-
-// delete a string
-const char *strfree(char *ptr)
-{
-	free(ptr);
-	return NULL;
-}
-
-// set string value
-char *strset(char *base, const char *source)
-{
-	if ( base )
-		free(base);
-	if ( source )
-		return strdup(source);
-	return strdup("");
-}
 
 // append source to string base
 char *stradd(char *base, const char *source)
@@ -36,56 +12,105 @@ char *stradd(char *base, const char *source)
 	return str;
 }
 
-// resize string
-char *strsize(char *base, int newsize)
+// concatenate strings
+char *concat(const char *s1, ...)
 {
-	char *str = (char *) realloc(base, newsize + 1);
-	str[newsize] = '\0';
+	va_list ap;
+	const char *s;
+	int len = strlen(s1) + 1;
+	char *str = (char *) malloc(len);
+
+	strcpy(str, s1);
+	va_start(ap, s1);
+	while ( (s = va_arg(ap, const char *)) != NULL ) {
+		len += strlen(s);
+		str = (char *) realloc(str, len);
+		strcat(str, s);
+		}
+	va_end(ap);
 	return str;
 }
 
-// convert to lowercase
-void strtolwr(char *buf)
+// returns 'count' bytes at 'index' position of 'source'
+char *copy(const char *source, int index, int count)
 {
-	char *p = buf;
+	if ( count > 0 ) {
+		char *str = (char *) malloc(count + 1);
+		int len = strlen(source);
 	
-	while ( *p ) {
-		*p = tolower(*p);
-		p ++;
+		if ( index >= len )
+			str[0] = '\0';
+		else {
+			strncpy(str, source + index, count);
+			str[count] = '\0';
+			}
+		return str;
 		}
+	if ( count == 0 ) return strdup("");
+	assert(count >= 0);
+	return NULL;
 }
 
-// convert to uppercase
-void strtoupr(char *buf)
+// returns the position of character c in string source or -1
+int	pos(const char *source, char c)
 {
-	char *p = buf;
-	
-	while ( *p ) {
-		*p = toupper(*p);
-		p ++;
-		}
+	assert(source);
+	for ( int i = 0; source[i]; i ++ )
+		if ( source[i] == c )
+			return i;
+	return -1;
 }
 
-// 
-void strtotr(char *buf, char what, char with)
+// returns the position of what string in source or -1
+int	strpos(const char *source, const char *what)
 {
-	char *p = buf;
-	
-	while ( *p ) {
-		if ( *p == what )
-			*p = with;
-		p ++;
-		}
+	assert(source);
+	char *p = strstr(source, what);
+	if ( p )
+		return p - source;
+	return -1;
 }
 
-//
-void strtomtr(char *buf, const char *what, const char *with)
+// inserts string in position pos of source and returns 
+char *insert(const char *source, int pos, const char *string)
 {
-	const char *p = what;
-	while ( *p ) {
-		strtotr(buf, *p, with[p-what]);
-		p ++;
+	int		len = strlen(source);
+	
+	char *str = (char *) malloc(len + strlen(string) + 1);
+	if ( pos == 0 ) {
+		strcpy(str, string);
+		strcat(str, source);
 		}
+	else {
+		strncpy(str, source, pos);
+		str[pos] = '\0';
+		strcat(str, string);
+		if ( pos < len )
+			strcat(str, source + pos);
+		}
+	return str;
+}
+
+// deletes count bytes of source at pos position
+char *delete(const char *source, int pos, int count)
+{
+	int	len = strlen(source);
+	assert(pos < len);
+	if ( count < 0 )
+		count = len;	
+	if ( pos < len ) {
+		char *str = (char *) malloc((len - count) + 1);
+		if ( pos == 0 )
+			strcpy(str, source + count);
+		else {
+			strncpy(str, source, pos);
+			str[pos] = '\0';
+			if ( pos + count < len )
+				strcat(str, source + pos + count);
+			}
+		return str;
+		}
+	return NULL;
 }
 
 //
@@ -170,6 +195,15 @@ const char *parse_num(const char *src, char *buf)
 		}
 	*d = '\0';
 	return p;
+}
+
+//
+const char *parse_const(const char *src, const char *str)
+{
+	size_t	len = strlen(str);
+	if ( strncmp(src, str, len) == 0 )
+		return src + len;
+	return NULL;
 }
 
 //

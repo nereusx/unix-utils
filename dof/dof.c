@@ -30,31 +30,17 @@ static const char *exec_expr(const char *source, const char *data)
 	static char buf[LINE_MAX];
 	char args[LINE_MAX], *tp, *ap;
 	const char *p = source, *next;
-	
+
 	buf[0] = '\0';
 	switch ( *p ) {
-	case 'f':		// full pathname
-		strcpy(buf, data);
-		break;
-	case 'b':		// basename (no directory, no extension)
-		strcpy(buf, basename(data));
-		break;
-	case 'd':		// directory name
-		strcpy(buf, dirname(data));
-		break;
-	case 'e':		// extension
-		strcpy(buf, extname(data));
-		break;
-	case '%':		// none
-		strcpy(buf, "%");
-		break;
+	case 'f': strcpy(buf, data); break;
+	case 'b': strcpy(buf, basename(data)); break;
+	case 'd': strcpy(buf, dirname(data)); break;
+	case 'e': strcpy(buf, extname(data)); break;
+	case '%': strcpy(buf, "%"); break;
 	case '\'':
-	case 'q':
-		strcpy(buf, "'");
-		break;
-	case '\"':
-		strcpy(buf, "\"");
-		break;
+	case 'q':  strcpy(buf, "'"); break;
+	case '\"': strcpy(buf, "\""); break;
 	default:
 		fprintf(stderr, "unknown element `%%%c'\n", *p);
 		return buf;
@@ -78,23 +64,20 @@ static const char *exec_expr(const char *source, const char *data)
 		switch ( *p ) {
 		case 'l':
 			while ( *ap ) {
-				tp = strchr(buf, *ap);
-				if ( tp )
+				if ( (tp = strchr(buf, *ap)) != NULL )
 					*tp = '\0';
 				ap ++;
 				}
 			break;
 		case 'r':
 			while ( *ap ) {
-				tp = strrchr(buf, *ap);
-				if ( tp )
+				if ( (tp = strrchr(buf, *ap)) != NULL )
 					*tp = '\0';
 				ap ++;
 				}
 			break;
 		case 'i':
-			tp = strstr(buf, args);
-			if ( tp )
+			if ( (tp = strstr(buf, args)) != NULL )
 				*tp = '\0';
 			break;
 			};
@@ -436,8 +419,8 @@ int main(int argc, char **argv)
 						start = last = atof(buf);
 
 						// next number
-						if ( p[0] == '.' && p[1] == '.' )		p += 2;
-						else { puts("example: dof -s:1..10"); return 1; }
+						if ( (p = parse_const(p, "..")) == NULL )
+							{ puts("example: dof -s:1..10"); return 1; }
 						
 						// get 'last'
 						p = parse_num(p, buf);
