@@ -66,6 +66,6 @@ Nicholas Christopoulos
 .ME
 .br
 .UR https://github.com/nereusx/unix-utils
-Prject page:
+Project page:
 .UE
 \# EOF
