@@ -1,6 +1,11 @@
 /*
- *	dof [string [string [...]] do command
+ *	dof <list> do <command>
  *
+ *	Executes <command> for each element of the <list>.
+ * 
+ *	This program was created because of the lack of one-line foreach of
+ *	tcsh.
+ * 
  *	Copyright (C) 2017-2020 Free Software Foundation, Inc.
  *
  *	This is free software: you can redistribute it and/or modify it under
