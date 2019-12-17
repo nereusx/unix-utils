@@ -166,3 +166,14 @@ char *list_to_string(list_t *list, const char *delim)
 	return ret;
 }
 
+/*
+ * print outs the list
+ */
+void list_print(list_t *list, FILE *fp)
+{
+	list_node_t *cur = list->root;
+	while ( cur ) {
+		fprintf(fp, "%s: %s\n", cur->key, (char *) cur->data);
+		cur = cur->next;
+		}
+}

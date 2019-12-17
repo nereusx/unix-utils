@@ -26,6 +26,7 @@
 extern "C" {
 #endif
 
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include "str.h"
@@ -56,6 +57,7 @@ list_node_t *list_addp(list_t *list, const char *key, const char *value);
 void list_delrec(list_t *list, regex_t *re);
 
 char *list_to_string(list_t *list, const char *delim);
+void list_print(list_t *list, FILE *fp);
 
 #define list_append(l,k)	list_add((l),(k))
 #define list_del(l,k)		list_remove((l),(k))

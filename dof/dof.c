@@ -24,6 +24,7 @@
  * 	Written by Nicholas Christopoulos <nereus@freemail.gr>
  */
 
+#include "panic.h"
 #include "str.h"
 #include "list.h"
 #include "file.h"
@@ -35,12 +36,18 @@
 #define OFL_DIREC   0x08	// files, directories only
 #define OFL_RECURS  0x10	// recursive loop into subdirectories
 
+// '.' and '..' special directories
+#define DOTS(s)        (s[0]=='.' && (s[1]=='\0' || (s[1]=='.' && s[2]=='\0')))
+#define IF_DOTS(s)     if(DOTS(s))
+#define IF_NOT_DOTS(s) if(!DOTS(s))
+
 static list_t cmds_list;	// list of commands
 static list_t recp_list;	// recipes
 static list_t incl_list;	// wc-patterns include list
 static list_t regx_list;	// regex exclude list
 static list_t excl_list;	// wc-patterns exclude list
 
+// just a small stack to store a few pointers for recursive issues
 static void *stack[256];	// the stack storage
 static void **sp = stack;	// stack pointer (top)
 #define push(p) *sp ++ = p
@@ -327,7 +334,7 @@ int conf_parser(char *source)
 #define APP_DESCR \
 "dof (do-for) run commands for each element of 'list'."
 
-#define APP_VER "1.6"
+#define APP_VER "1.7"
 
 static const char *usage = "\
 Usage: dof [list] [-x patterns] do [commands]\n\
@@ -373,38 +380,87 @@ There is NO WARRANTY, to the extent permitted by law.\n\
 Written by Nicholas Christopoulos <mailto:nereus@freemail.gr>\n\
 ";
 
-//
-int main(int argc, char **argv)
+// parsing arguments stages
+typedef enum stage_e { Items = 0, Commands, ExcludeRE, ExcludeWC } stage_t;
+
+// initialize globals
+void dof_init()
 {
-	int		flags = 0, stage = 0, exit_status = 0;
-	int		i, status;
-	list_node_t	*cur;
-	char buf[LINE_MAX];
-	
 	list_init(&cmds_list);
 	list_init(&recp_list);
 	list_init(&incl_list);
 	list_init(&regx_list);
 	list_init(&excl_list);
+	
+	void dof_done();
+	atexit(dof_done);
 
 	readconf("dof", conf_parser);
-	
-	for ( i = 1; i < argc; i ++ ) {
-		if ( argv[i][0] == '-' && (stage == 0 || stage > 1) ) {
+}
 
-			// one minus, read from stdin
-			if ( argv[i][1] == '\0' ) {
+// closing program (atexit)
+void dof_done()
+{
+	list_node_t	*cur;
+	
+	cur = regx_list.root;
+	while ( cur ) {
+		regfree((regex_t *) (cur->data));
+		cur = cur->next;
+		}
+
+	list_clear(&excl_list);
+	list_clear(&regx_list);
+	list_clear(&cmds_list);
+	list_clear(&recp_list);
+	list_clear(&incl_list);
+}
+
+// build regex table
+void dof_build_regex()
+{
+	list_node_t	*cur;
+	int status;
+	char message[LINE_MAX];
+	
+	cur = regx_list.root;
+	while ( cur ) {
+		cur->data = (void *) malloc(sizeof(regex_t));
+		status = regcomp((regex_t *) (cur->data), cur->key, REG_EXTENDED|REG_NEWLINE);
+		if ( status != 0 ) {
+			regerror(status, (regex_t *) (cur->data), message, LINE_MAX);
+			panic("Regex error compiling '%s': %s\n", cur->key, message);
+			}
+		cur = cur->next;
+		}
+}
+
+// main()
+int main(int argc, char **argv)
+{
+	int		i, flags = 0;
+	stage_t	stage = Items;
+	list_node_t	*cur;
+	char	buf[LINE_MAX];
+
+	dof_init();
+
+	// parsing arguments
+	for ( i = 1; i < argc; i ++ ) {
+		if ( (argv[i][0] == '-') && (stage != Commands) ) {
+			
+			if ( argv[i][1] == '\0' ) {	// one minus, read from stdin
 				while ( fgets(buf, LINE_MAX, stdin) )	{
 					switch ( stage ) {
-					case 0:
-						if ( strcmp(filename(argv[i]), ".") != 0 && strcmp(filename(argv[i]), "..") != 0 )
+					case Items: IF_NOT_DOTS(filename(argv[i]))\
 							list_add(&incl_list, buf);
 						break;
-					case 1:	list_add(&cmds_list, buf);	break;
-					case 2:	list_add(&regx_list, buf);	break;
-					case 3:	list_add(&excl_list, buf);	break;
+					case Commands:	list_add(&cmds_list, buf);	break;
+					case ExcludeRE:	list_add(&regx_list, buf);	break;
+					case ExcludeWC:	list_add(&excl_list, buf);	break;
 						}
 					}
+				continue; // we finished with this argv
 				}
 
 			// check options
@@ -415,8 +471,8 @@ int main(int argc, char **argv)
 				case 'p': flags |= OFL_PLAIN; break;
 				case 'd': flags |= OFL_DIREC; break;
 				case 'r': flags |= OFL_RECURS; break;
-				case 'g': stage = 2; break;
-				case 'x': stage = 3; break;
+				case 'g': stage = ExcludeRE; break;
+				case 'x': stage = ExcludeWC; break;
 				case 'h': puts(usage); return 1;
 				case 'v': puts(verss); return 1;
 				case 's': // add sequence of numbers
@@ -480,69 +536,34 @@ int main(int argc, char **argv)
 							cur = cur->next;
 							}
 						return 1;
-				case 'l':
-						// list recipes
-						cur = recp_list.root;
-						while ( cur ) {
-							printf("%s: (%s)\n", cur->key, (char *) cur->data);
-							cur = cur->next;
-							}
-						return 0;
+				case 'l': // list recipes
+					list_print(&recp_list, stdout);
+					return 0;
 				default:
-					// error
-					printf("unknown option [%c].\n", argv[i][j]);
+					error("unknown option [%c].\n", argv[i][j]);
 					return 1;
 					}
 				}
 			}
-		else if ( strcmp(argv[i], "do") == 0 && (stage == 0 || stage > 1) )
-			stage = 1;
+		else if ( (strcmp(argv[i], "do") == 0) && (stage != Commands) )
+			stage = Commands;
 		else {
 			switch ( stage ) {
-			case 0:
-				if ( strcmp(filename(argv[i]), ".") != 0 && strcmp(filename(argv[i]), "..") != 0 )
-					list_add(&incl_list, argv[i]);
+			case Items: IF_NOT_DOTS(filename(argv[i]))\
+							list_add(&incl_list, argv[i]);
 				break;
-			case 1:	list_add(&cmds_list, argv[i]); break;
-			case 2:	list_add(&regx_list, argv[i]); break;
-			case 3:	list_add(&excl_list, argv[i]); break;
+			case Commands:	list_add(&cmds_list, argv[i]); break;
+			case ExcludeRE:	list_add(&regx_list, argv[i]); break;
+			case ExcludeWC:	list_add(&excl_list, argv[i]); break;
 				}
 			}
 		}
 
-	if ( stage == 0 || stage > 1 ) { // syntax error
+	if ( stage != Commands ) { // syntax error
 		puts("`do' keyword missing; run `dof -h' for help.");
 		return 1;
 		}
 
-	// build regex table
-	cur = regx_list.root;
-	while ( cur ) {
-		cur->data = (void *) malloc(sizeof(regex_t));
-		status = regcomp((regex_t *) (cur->data), cur->key, REG_EXTENDED|REG_NEWLINE);
-		if ( status != 0 ) {
-			char error_message[LINE_MAX];
-			regerror(status, (regex_t *) (cur->data), error_message, LINE_MAX);
-			printf("Regex error compiling '%s': %s\n", cur->key, error_message);
-			return 1;
-			}
-		cur = cur->next;
-		}
-
-	// execute
-	exit_status = execute(flags);
-
-	// cleanup
-	cur = regx_list.root;
-	while ( cur ) {
-		regfree((regex_t *) (cur->data));
-		cur = cur->next;
-		}
-
-	list_clear(&excl_list);
-	list_clear(&regx_list);
-	list_clear(&cmds_list);
-	list_clear(&recp_list);
-	list_clear(&incl_list);
-	return exit_status;
+	dof_build_regex();
+	return execute(flags);
 }

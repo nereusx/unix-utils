@@ -9,8 +9,8 @@ all: dof
 clean:
 	-@rm dof dof.1* *.o
 
-dof: dof.c list.h list.c file.h file.c str.h str.c
-	$(CC) $(CFLAGS) dof.c list.c file.c str.c -o dof
+dof: dof.c list.h list.c file.h file.c str.h str.c panic.h panic.c
+	$(CC) $(CFLAGS) dof.c list.c file.c str.c panic.c -o dof
 
 dof.1.gz: dof.man
 	cp dof.man dof.1
