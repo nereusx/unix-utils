@@ -332,7 +332,7 @@ int conf_parser(char *source)
 #define APP_VER "1.7"
 
 static const char *usage = "\
-Usage: dof [list] [-x patterns] do [commands]\n\
+Usage: dof [list] [-x patterns] [do [commands]]\n\
 "APP_DESCR"\n\
 \n\
 Options:\n\

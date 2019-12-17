@@ -15,7 +15,7 @@ dof \- (do-for) executes commands for each item of a list
 .RI [item\ ...\ |\ -\ ]
 .RI [ \fB\-x\fR\ ...]
 .RI [ \fB\-g\fR\ ...]
-.RI \fBdo\fR\ [\ command\ |\ -\ ]
+.RI [ \fBdo\fR\ [\ command\ |\ -\ ] ]
 .SH DESCRIPTION
 \fIdof\fR executes commands for each item (file or string) of a list
 .PP
