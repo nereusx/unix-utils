@@ -2,7 +2,7 @@
 
 MANDIR  = /usr/share/man/man1
 INSTALL = /usr/bin
-CFLAGS  = -O -Wall -Wno-unused-result -Wunused-value -static
+CFLAGS  = -O -Wall -Wno-unused-result -static
 
 dof: dof.c list.h list.c file.h file.c str.h str.c panic.h panic.c
 	$(CC) $(CFLAGS) dof.c file.c list.c str.c panic.c -o dof

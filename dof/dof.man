@@ -1,14 +1,14 @@
 \# exec: groff dof.1 -Tascii -man | less
 \#
 \# .TH cmd-name section [date [version [page-descr]]]
-.TH dof 1 "31 Dec 2019" "v1.6" "User Commands"
+.TH dof 1 "17 Dec 2019" "v1.7" "User Commands"
 .SH NAME
 dof \- (do-for) executes commands for each item of a list
 .SH SYNOPSIS
 \# .SY command; .OP \-efp...; .OP \-d cs; .OP \-f fam; ...; .RI [ parameter .\|.\|. ]; .YS;
 .SY dof
 .OP \-efpr
-.OP \-s:N..N\fR[\fB..N\fR]
+.OP \-s N..N\fR[\fB..N\fR]
 .OP \-l
 .OP \-h
 .OP \-v
@@ -61,7 +61,7 @@ Plain files only; directories, devices, etc are ignored.
 .BR \-d
 Directories only; plain-files, devices, etc are ignored.
 .TP
-.BR \-s:F..L[..S]
+.BR \-s F..L[..S]
 Adds a sequence of numbers (float or integer).
 \fIF\fR for first, \fIL\fR for last and optionally \fIS\fR for step.
 This option can be repeated many times.

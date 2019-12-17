@@ -36,11 +36,6 @@
 #define OFL_DIREC   0x08	// files, directories only
 #define OFL_RECURS  0x10	// recursive loop into subdirectories
 
-// '.' and '..' special directories
-#define DOTS(s)        (s[0]=='.' && (s[1]=='\0' || (s[1]=='.' && s[2]=='\0')))
-#define IF_DOTS(s)     if(DOTS(s))
-#define IF_NOT_DOTS(s) if(!DOTS(s))
-
 static list_t cmds_list;	// list of commands
 static list_t recp_list;	// recipes
 static list_t incl_list;	// wc-patterns include list
@@ -55,7 +50,7 @@ static void **sp = stack;	// stack pointer (top)
 #define ppop()  *pop()
 #define peek()  sp[-1]
 
-//
+// expand `%' variables
 static const char *expand_prc(const char *source, const char *data)
 {
 	static char buf[LINE_MAX];
@@ -309,8 +304,8 @@ int execute(int flags)
 		cur = cur->next;
 		}
 	
-	pop();
 	list_destroy(items);
+	pop();
 	free(cwd);
 	return exit_status;
 }
@@ -348,7 +343,7 @@ Options:\n\
 \t-f\tforce non-stop; dof stops on error, this option forces dof to ignore errors.\n\
 \t-p\tplain files only; directories, devices, etc are ignored.\n\
 \t-d\tdirectories only; plain files, devices, etc are ignored.\n\
-\t-s:fist..last[..step]\tadd sequence of numbers (float or integer).\n\
+\t-s fist..last[..step]\tadd sequence of numbers (float or integer).\n\
 \t-l\tprint recipes (/etc/dof.conf, ~/.dof)\n\
 \t--<recipe>\n\t\texecute recipe (ex: dof --to-ogg)\n\
 \t-\tread from stdin\n\
@@ -416,7 +411,7 @@ void dof_done()
 	list_clear(&incl_list);
 }
 
-// build regex table
+// build regex_t table
 void dof_build_regex()
 {
 	list_node_t	*cur;
@@ -435,36 +430,109 @@ void dof_build_regex()
 		}
 }
 
+// execute recipe
+int execute_recipe(const char *key, int flags)
+{
+	list_node_t	*cur;
+	
+	if ( strcmp(key, "help") == 0 )    { puts(usage); return 1; }
+	if ( strcmp(key, "version") == 0 ) { puts(verss); return 1; }
+	
+	cur = recp_list.root;
+	while ( cur ) {
+		if ( strcmp(cur->key, key) == 0 ) {
+			char cmd[LINE_MAX];
+			char opt[32];
+			opt[0] = '\0';
+			if ( flags & OFL_EXEC   ) strcat(opt, "-e ");
+			if ( flags & OFL_FORCE  ) strcat(opt, "-f ");
+			if ( flags & OFL_PLAIN  ) strcat(opt, "-p ");
+			if ( flags & OFL_DIREC  ) strcat(opt, "-d ");
+			if ( flags & OFL_RECURS ) strcat(opt, "-r ");
+			snprintf(cmd, LINE_MAX, "dof %s %s", opt, (char *) cur->data);
+			return system(cmd);
+			}
+		cur = cur->next;
+		}
+		
+	error("recipe '%s' not found", key);
+	return 1;
+}
+
+// put an item in the correct list
+void dof_additem(stage_t stage, const char *data)
+{
+	switch ( stage ) {
+	case Items:
+		if ( !isdots(filename(data)) )
+			list_add(&incl_list, data);
+		break;
+	case Commands:	list_add(&cmds_list, data);	break;
+	case ExcludeRE:	list_add(&regx_list, data);	break;
+	case ExcludeWC:	list_add(&excl_list, data);	break;
+		}
+}
+
+// add sequence of numbers
+int dof_addseq(stage_t stage, const char *src)
+{
+	const char *p = src;
+	double	last, start, step = 1.0;
+	char	buf[LINE_MAX];
+
+	// get 'first'
+	p = parse_num(p, buf);
+	start = last = atof(buf);
+
+	// next number
+	if ( (p = parse_const(p, "..")) == NULL )
+		{ error("example: dof -s 1..10"); return 1; }
+
+	// get 'last'
+	p = parse_num(p, buf);
+	last = atof(buf);
+
+	// get 'step'
+	if ( p[0] == '.' && p[1] == '.' ) {
+		p += 2;
+		p = parse_num(p, buf);
+		step = atof(buf);
+		}
+		
+	// add
+	for ( double f = start; f <= last; f += step ) {
+		sprintf(buf, "%g", f);
+		dof_additem(stage, buf);
+		}
+	return 0;
+}
+
 // main()
 int main(int argc, char **argv)
 {
-	int		i, flags = 0;
+	int		i, j, flags = 0, opt_seq = 0;
 	stage_t	stage = Items;
-	list_node_t	*cur;
-	char	buf[LINE_MAX];
 
 	dof_init();
 
 	// parsing arguments
 	for ( i = 1; i < argc; i ++ ) {
-		if ( (argv[i][0] == '-') && (stage != Commands) ) {
+		if ( opt_seq ) { // this arg is the parameter of '-s'
+			if ( dof_addseq(stage, argv[i]) )
+				return 1;
+			opt_seq = 0;
+			}
+		else if ( (argv[i][0] == '-') && (stage != Commands) ) {
 			
 			if ( argv[i][1] == '\0' ) {	// one minus, read from stdin
-				while ( fgets(buf, LINE_MAX, stdin) )	{
-					switch ( stage ) {
-					case Items: IF_NOT_DOTS(filename(argv[i]))\
-							list_add(&incl_list, buf);
-						break;
-					case Commands:	list_add(&cmds_list, buf);	break;
-					case ExcludeRE:	list_add(&regx_list, buf);	break;
-					case ExcludeWC:	list_add(&excl_list, buf);	break;
-						}
-					}
+				char	buf[LINE_MAX];
+				while ( fgets(buf, LINE_MAX, stdin) )
+					dof_additem(stage, buf);
 				continue; // we finished with this argv
 				}
 
 			// check options
-			for ( int j = 1; argv[i][j]; j ++ ) {
+			for ( j = 1; argv[i][j]; j ++ ) {
 				switch ( argv[i][j] ) {
 				case 'e': flags |= OFL_EXEC; break;
 				case 'f': flags |= OFL_FORCE; break;
@@ -475,92 +543,23 @@ int main(int argc, char **argv)
 				case 'x': stage = ExcludeWC; break;
 				case 'h': puts(usage); return 1;
 				case 'v': puts(verss); return 1;
-				case 's': // add sequence of numbers
-						{
-						const char *p, *pstart;
-						double last, start, step = 1.0;
-
-						p = pstart = (argv[i]+j+1);
-						if ( *p != ':' ) { puts("example: dof -s:1..10"); return 1; }
-						p ++;
-
-						// get 'first'
-						p = parse_num(p, buf);
-						start = last = atof(buf);
-
-						// next number
-						if ( (p = parse_const(p, "..")) == NULL )
-							{ puts("example: dof -s:1..10"); return 1; }
-						
-						// get 'last'
-						p = parse_num(p, buf);
-						last = atof(buf);
-
-						// get 'step'
-						if ( p[0] == '.' && p[1] == '.' ) {
-							p += 2;
-							p = parse_num(p, buf);
-							step = atof(buf);
-							}
-							
-						// add
-						for ( double f = start; f <= last; f += step ) {
-							sprintf(buf, "%g", f);
-							switch ( stage ) {
-							case 0:	list_add(&incl_list, buf);	break;
-							case 1:	list_add(&cmds_list, buf); break;
-							case 2:	list_add(&regx_list, buf); break;
-							case 3:	list_add(&excl_list, buf); break;
-								}
-							}
-
-						j += p - pstart;
-						}
-						break;
-				case '-':
-						// execute recipe
-						cur = recp_list.root;
-						while ( cur ) {
-							if ( strcmp(cur->key, argv[i]+2) == 0 ) {
-								char cmd[LINE_MAX];
-								char opt[64];
-								opt[0] = '\0';
-								if ( flags & OFL_EXEC   ) strcat(opt, "-e ");
-								if ( flags & OFL_FORCE  ) strcat(opt, "-f ");
-								if ( flags & OFL_PLAIN  ) strcat(opt, "-p ");
-								if ( flags & OFL_DIREC  ) strcat(opt, "-d ");
-								if ( flags & OFL_RECURS ) strcat(opt, "-r ");
-								snprintf(cmd, LINE_MAX, "dof %s %s", opt, (char *) cur->data);
-								return system(cmd);
-								}
-							cur = cur->next;
-							}
-						return 1;
-				case 'l': // list recipes
-					list_print(&recp_list, stdout);
-					return 0;
+				case 's': opt_seq = 1; break;
+				case '-': return execute_recipe(argv[i]+2, flags);
+				case 'l': list_print(&recp_list, stdout); return 0;
 				default:
-					error("unknown option [%c].\n", argv[i][j]);
+					error("unknown option [%c]", argv[i][j]);
 					return 1;
 					}
 				}
 			}
 		else if ( (strcmp(argv[i], "do") == 0) && (stage != Commands) )
 			stage = Commands;
-		else {
-			switch ( stage ) {
-			case Items: IF_NOT_DOTS(filename(argv[i]))\
-							list_add(&incl_list, argv[i]);
-				break;
-			case Commands:	list_add(&cmds_list, argv[i]); break;
-			case ExcludeRE:	list_add(&regx_list, argv[i]); break;
-			case ExcludeWC:	list_add(&excl_list, argv[i]); break;
-				}
-			}
+		else
+			dof_additem(stage, argv[i]);
 		}
 
 	if ( stage != Commands ) { // syntax error
-		puts("`do' keyword missing; run `dof -h' for help.");
+		error("`do' keyword missing; usage: dof <items> do <commands>\nrun `dof -h' for help");
 		return 1;
 		}
 

@@ -24,8 +24,6 @@
 #include "str.h"
 #include "file.h"
 
-#define IF_DOTS(s) if((s)[0]=='.' && ((s)[1]=='\0' || ((s)[1]=='.' && (s)[2]=='\0')))
-
 /*
  * returns true if the "filename" has wildcards
  */
@@ -66,9 +64,8 @@ void wclist(const char *pattern, int (*callback)(const char *))
 	if ( glob(pattern, flags, NULL, &globbuf) == 0 ) {
 		for ( int i = 0; globbuf.gl_pathv[i]; i ++ ) {
 			const char *name = globbuf.gl_pathv[i];
-			IF_DOTS(name) continue;
-			if ( callback(name) )
-				break;
+			if ( isdots(name)   ) continue;
+			if ( callback(name) ) break;
 			}
 		globfree(&globbuf);
 		}

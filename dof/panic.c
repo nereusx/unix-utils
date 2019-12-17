@@ -28,6 +28,7 @@ void warning(const char *fmt, ...)
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
+	fputc('\n', stderr);
 }
 
 void error(const char *fmt, ...)
@@ -37,6 +38,7 @@ void error(const char *fmt, ...)
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
+	fputc('\n', stderr);
 }
 
 void panic(const char *fmt, ...)
@@ -46,6 +48,7 @@ void panic(const char *fmt, ...)
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
+	fputc('\n', stderr);
 //	exit(127);
 	abort();
 }

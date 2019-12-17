@@ -33,8 +33,9 @@ extern "C" {
 #include <sys/stat.h>
 #include <unistd.h>
 #include <limits.h>
-#include <dirent.h>
-	
+
+#define isdots(s) ((s)[0]=='.' && ((s)[1]=='\0' || ((s)[1]=='.' && (s)[2]=='\0')))
+
 int		iswcpat(const char *filename);
 char	*basename(const char *source);
 const char *filename(const char *source);

@@ -2,7 +2,7 @@
 
 MANDIR  := /usr/share/man/man1
 INSTALL := /usr/bin
-CFLAGS  := -O -Wall -Wno-unused-result -Wunused-value -static
+CFLAGS  := -O -Wall -Wno-unused-result -static
 
 all: dof
 
