@@ -61,7 +61,7 @@ Plain files only; directories, devices, etc are ignored.
 .BR \-d
 Directories only; plain-files, devices, etc are ignored.
 .TP
-.BR \-s F..L[..S]
+.BR \-s\ F..L[..S]
 Adds a sequence of numbers (float or integer).
 \fIF\fR for first, \fIL\fR for last and optionally \fIS\fR for step.
 This option can be repeated many times.
