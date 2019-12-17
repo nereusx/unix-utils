@@ -24,7 +24,7 @@ dof \- (do-for) executes commands for each item of a list
 	dof -e *.mp3 do ffmpeg -i "%f" "%b.ogg"
 	
 	# display colors on terminal
-	dof -e -s:0..15 do 'tput setaf %f; echo colour%f; tput op;'
+	dof -e -s 0..15 do 'tput setaf %f; echo colour%f; tput op;'
 	
 	# remove all files except *.pdf and *.tex
 	dof -e * -g *.{pdf,tex} do 'rm %f'
