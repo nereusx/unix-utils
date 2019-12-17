@@ -558,9 +558,10 @@ int main(int argc, char **argv)
 			dof_additem(stage, argv[i]);
 		}
 
-	if ( stage != Commands ) { // syntax error
-		error("`do' keyword missing; usage: dof <items> do <commands>\nrun `dof -h' for help");
-		return 1;
+	if ( stage != Commands ) { // no commands specified
+		// error("`do' keyword missing; usage: dof <items> do <commands>\nrun `dof -h' for help"); return 1;
+		stage = Commands;
+		dof_additem(stage, "%f");		
 		}
 
 	dof_build_regex();
