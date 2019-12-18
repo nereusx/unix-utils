@@ -37,10 +37,10 @@ extern "C" {
 #define isdots(s) ((s)[0]=='.' && ((s)[1]=='\0' || ((s)[1]=='.' && (s)[2]=='\0')))
 
 int		iswcpat(const char *filename);
-char	*basename(const char *source);
+const char *basename(const char *source);
 const char *filename(const char *source);
-char	*dirname(const char *source);
-char	*extname(const char *source);
+const char *dirname(const char *source);
+const char *extname(const char *source);
 
 void	wclist(const char *pattern, int (*callback)(const char *));
 int		readconf(const char *appname, int (*parser)(char *));

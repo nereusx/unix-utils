@@ -74,7 +74,7 @@ void wclist(const char *pattern, int (*callback)(const char *))
 /*
  * returns the name of the file without the directory and the extension
  */
-char *basename(const char *source)
+const char *basename(const char *source)
 {
 	static char buf[PATH_MAX];
 	char		*b;
@@ -92,7 +92,7 @@ char *basename(const char *source)
 /*
  * returns the directory of the file without the trailing '/'
  */
-char *dirname(const char *source)
+const char *dirname(const char *source)
 {
 	static char buf[PATH_MAX];
 	const char	*p;
@@ -109,18 +109,17 @@ char *dirname(const char *source)
 /*
  * returns the extension of the file without the '.'
  */
-char *extname(const char *source)
+const char *extname(const char *source)
 {
 	static char buf[PATH_MAX];
-	char		*b;
 	const char	*p;
 
 	if ( (p = strrchr(source, '/')) != NULL )
 		strcpy(buf, p + 1);
 	else
 		strcpy(buf, source);
-	if ( (b = (char *) strrchr(buf, '.')) != NULL )
-		return b + 1;
+	if ( (p = strrchr(buf, '.')) != NULL )
+		return p + 1;
 	else
 		buf[0] = '\0';
 	return buf;

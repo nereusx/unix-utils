@@ -39,14 +39,14 @@ Execute; \fIdof\fR displays what commands would be run, this option executes the
 .TP
 .BR \-x
 Exclude list; after \fB-x\fR are following glob's patterns to exclude items from the previous list.
-When the pattern is unquoted it will expanded by the shell otherwise `glob()' will be used in each directory.
+When the pattern is unquoted it will expanded by the shell otherwise 'glob()' will be used in each directory.
 See
 .BR glob (3)
 .TP
 .BR \-g
 Exclude list; after \fB-g\fR are following regex's patterns to exclude items from the previous list.
 Since the \fIdof\fR parameters can be anything, this is no glob file-patterns but regex's patterns.
-Example `*.c' file-pattern should be written as `.*\\.c'.
+Example '*.c' file-pattern should be written as '.*\\.c'.
 .TP
 .BR \-r
 Recursive execution into subdirectories. You have to be sure that you type wildcard patterns quoted,
@@ -77,23 +77,32 @@ Help screen.
 .BR \-v
 Version and license information.
 .SH VARIABLES
-In the `commands' you can use several program's variables. Variables are recognized by prefix '%'.
-Variables and its modifiers can be included inside '{' '}' block or '(' ')' block.
+In the 'commands' you can use several program's variables.
+Variables are recognized by prefix '%'.
+Variables and its modifiers can be included inside '{}', '()', '[]' blocks or any other '\fIispunct()\fR' character block that follows the '%'.
 .TP
 .BR %f
-The full string (or filename)
+The full string (or filename).
 .TP
 .BR %b
-The basename (no directory, no extension)
+The basename (no directory, no extension).
 .TP
 .BR %d
-The dirname (only the directory without the '/' suffix) 
+The dirname (only the directory without the '/' suffix).
 .TP
 .BR %e
-The extension without '.' prefix
+The extension without '.' prefix.
+.TP
+.BR %h
+The home directory.
 .TP
 .BR %%
 The character '%'.
+.TP
+.BR %q
+The apostrophe character (').
+.PP
+You can get a list of all variables with '\fI--vars\fR' option.
 .SH MODIFIERS
 Modifiers defined by ':' that follows a variable and modifies the result string.
 You can have unlimited number of modifiers.
@@ -110,8 +119,8 @@ Returns the string until the occurence of string 's'.
 \# .BR %(expr)
 \# string processing expression... not used yet.
 .SH FILES
-\fBdof\fR reads `\fI/etc/dof.conf\fR' and `\fI~/.dof\fR' files.
-These files contains recipes in form `name: parameters'.
+\fBdof\fR reads '\fI/etc/dof.conf\fR' and '\fI~/.dof\fR' files.
+These files contains recipes in form 'name: parameters'.
 These recipes can later executed with \fB--\fIname\fR option.
 .PP
 Example:

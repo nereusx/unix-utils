@@ -50,144 +50,204 @@ static void **sp = stack;	// stack pointer (top)
 #define ppop()  *pop()
 #define peek()  sp[-1]
 
-// expand `%' variables
-static const char *expand_prc(const char *source, const char *data)
+static int opt_unquote = 0;	// check single quotes in string
+
+// variables/functions of '%' expressions
+void	v_copyarg(const char *arg, char *rv)	{ strcpy(rv, arg); }
+void	v_gethome(const char *arg, char *rv)	{ const char *p = getenv("HOME"); strcpy(rv, (p)? p : ""); }
+void	v_basename(const char *arg, char *rv)	{ strcpy(rv, basename(arg)); }
+void	v_dirname(const char *arg, char *rv)	{ strcpy(rv, dirname(arg)); }
+void	v_extname(const char *arg, char *rv)	{ strcpy(rv, extname(arg)); }
+void	v_getcwd(const char *arg, char *rv)		{ getcwd(rv, PATH_MAX); }
+
+typedef struct {
+	const char *name;
+	void (*func)(const char *, char *);
+	const char *value;
+	const char *desc;
+	} dof_var_t;
+
+dof_var_t dof_vars[] = {
+	{ "f", v_copyarg,  NULL,   "the full string" },
+	{ "b", v_basename, NULL,   "the basename of the file; no directory, no extension" },
+	{ "d", v_dirname,  NULL,   "the directory of the filename" },
+	{ "e", v_extname,  NULL,   "the extension of the filename (without dot)" },
+	{ "h", v_gethome,  NULL,   "the home directory" },
+	{ "home", v_gethome, NULL, "the home directory" },
+	{ "cwd", v_getcwd, NULL,   "the current working directory" },
+	{ "q",  NULL, "'",         "single quote character (')" },
+	{ "dq", NULL, "\"",        "double quote character (\")" },
+	{ "bq", NULL, "`",         "backquote character (`)" },
+	{ NULL, NULL, NULL, NULL } // end-of-list
+};
+
+//
+void	print_vars()
 {
-	static char buf[LINE_MAX];
-	char args[LINE_MAX], *tp, *ap;
-	const char *p = source, *next;
+	for ( int i = 0; dof_vars[i].name; i ++ )
+		printf("%16s %s\n", dof_vars[i].name, dof_vars[i].desc);
+}
 
-	buf[0] = '\0';
-	switch ( *p ) {
-	case 'f': strcpy(buf, data); break;
-	case 'b': strcpy(buf, basename(data)); break;
-	case 'd': strcpy(buf, dirname(data)); break;
-	case 'e': strcpy(buf, extname(data)); break;
-	case '%': strcpy(buf, "%"); break;
-	case '\'':
-	case 'q':  strcpy(buf, "'"); break;
-	case '\"': strcpy(buf, "\""); break;
-	default:
-		fprintf(stderr, "unknown element `%%%c'\n", *p);
-		return buf;
-		}
-	
-	// modifiers
-	p ++;
-	while ( p && *p == ':' ) {
-		p ++;
-		if ( (next = strchr(p, ':')) != NULL ) {
-			strcpy(args, p+1);
-			if ( (tp = strchr(args, ':')) != NULL )
-				*tp = '\0';
+// expand '%' expressions
+char *expand_expr(char *dest, const char *source, const char *data)
+{
+	const char *p = source;
+	char *d = dest;
+	char *buf = (char *) malloc(LINE_MAX);
+	char name[32], *n;
+	int  i, found;
+
+	// get variable name
+	n = name;
+	while ( isalnum(*p) )
+		*n ++ = *p ++;
+	*n = '\0';
+
+	// find and copy variable's data
+	for ( i = 0, found = 0; dof_vars[i].name; i ++ ) {
+		if ( strcmp(dof_vars[i].name, name) == 0 ) {
+			if ( dof_vars[i].func )
+				dof_vars[i].func(data, buf);
+			else if ( dof_vars[i].value )
+				strcpy(buf, dof_vars[i].value);
+			found ++;
+			break;
 			}
-		else
-			strcpy(args, p+1);
-		ap = args;
-			
-		switch ( *p ) {
-		case 'l':
-			while ( *ap ) {
-				if ( (tp = strchr(buf, *ap)) != NULL )
-					*tp = '\0';
-				ap ++;
-				}
-			break;
-		case 'r':
-			while ( *ap ) {
-				if ( (tp = strrchr(buf, *ap)) != NULL )
-					*tp = '\0';
-				ap ++;
-				}
-			break;
-		case 'i':
-			if ( (tp = strstr(buf, args)) != NULL )
-				*tp = '\0';
-			break;
-			};
-			
-		p = next;
 		}
 
-	return buf;
+	if ( found ) {
+		char *tp;
+
+		// modifiers
+		while ( *p == ':' ) {
+			p ++;
+			switch ( *p ) {
+			case 'l':	// l<c> the left part of first occurence of 'c'
+				if ( (tp = strchr(buf, p[1])) != NULL )
+					*tp = '\0';
+				p += 2;
+				break;
+			case 'r':	// r<c> the left part of last occurence of 'c'
+				if ( (tp = strrchr(buf, p[1])) != NULL )
+					*tp = '\0';
+				p += 2;
+				break;
+			case 'i':	// i<s> the left part of first occurence of string 's'
+				if ( (tp = strstr(buf, p+1)) != NULL )
+					*tp = '\0';
+				p += strlen(p);
+				break;
+				}
+			}
+
+		// copy result to dest
+		p = buf;
+		while ( *p )
+			*d ++ = *p ++;
+		}
+	else
+		error("unknown variable '%%%s'", name);
+
+	free(buf);
+	return d;
 }
 
 // converts and returns the commands to run with 'system()'
 // the buffer must be freed by the caller
-static char *dof(const char *fmt, const char *data)
+char *expand(const char *source, const char *data)
 {
-	const char *p, *v;
+	const char *p;
 	char *d, *dest;
-	int inside_sq = 0, count = 0, maxlen;
+	int inside_sq = 0;
+	int count = 0, maxlen;
 
 	// calculate a maximum length for the returned buffer
-	p = fmt;
+	p = source;
 	while ( p ) {
 		count ++;
 		p = strchr(p + 1, '%');
 		}
-	maxlen = strlen(fmt) + strlen(data) * count + 1;
+	maxlen = strlen(source) + strlen(data) * count + 1;
 
 	// replace strings
 	dest = (char *) malloc(maxlen);
 	d = dest;
-	p = fmt;
+	p = source;
 	while ( *p ) {
 
-		// handle single-quoted parts
-		if ( inside_sq ) {
+		if ( opt_unquote ) {
+			// handle single-quoted parts
+			if ( inside_sq ) {
+				if ( *p == '\'' ) {
+					inside_sq = 0;
+					p ++;
+					continue;
+					}
+				*d ++ = *p ++;
+				continue;
+				}
 			if ( *p == '\'' ) {
-				inside_sq = 0;
+				inside_sq = 1;
 				p ++;
 				continue;
 				}
-			*d ++ = *p ++;
-			continue;
-			}
-		if ( *p == '\'' ) {
-			inside_sq = 1;
-			p ++;
-			continue;
 			}
 
-		// translate % expressions
+		// translate '%' expressions
 		if ( *p == '%' ) {
-			char block[LINE_MAX], *bp;
-			char mark = ' ';
-			
 			p ++;
-			if ( *p == '{' || *p == '(' ) {
-				mark = *p;			
-				if ( mark == '{' )
-					{ mark = '}'; p ++; }
-				else if ( mark == '(' )
-					{ mark = ')'; p ++; }
-				else 
-					mark = ' ';
-	
-				bp = block;
-				while ( *p ) {
-					if ( *p == mark )
-						break;
-					*bp ++ = *p ++;
-					if ( mark == ' ' ) // patch for one-char
-						break;
-					}
-				*bp = '\0';
-				v = expand_prc(block, data);
-				while ( *v )	*d ++ = *v ++;
+			if ( *p == '%' || *p == '\'' || *p == '"' || *p == '\\' ) // few special chars
+				*d ++ = *p ++;
+			else if ( *p == '~' ) {
+				d = expand_expr(d, "h", data);
+				p ++;
 				}
 			else {
-				block[0] = *p;
-				block[1] = '\0';
-				v = expand_prc(block, data);
-				while ( *v )	*d ++ = *v ++;
+				char *block = (char *) malloc(LINE_MAX), *bp;
+				char mark = ' ';
+
+				if ( ispunct(*p) ) { // %{form} or %(form) or %/form/
+					mark = *p;
+					if ( mark == '{' )	mark = '}';
+					if ( mark == '(' )	mark = ')';
+					if ( mark == '[' )	mark = ']';
+
+					// copy internal block
+					p ++;
+					bp = block;
+					while ( *p ) {
+						if ( *p == mark ) {
+							p ++;
+							break;
+							}
+						*bp ++ = *p ++;
+						}
+					*bp = '\0';
+					d = expand_expr(d, block, data);
+					}
+				else if ( isalnum(*p) ) {
+					bp = block;
+					while ( isalnum(*p) )
+						*bp ++ = *p ++;
+					if ( *p == ':' ) { // modifier follows
+						while ( *p && !isspace(*p) )
+							*bp ++ = *p ++;
+						}
+					*bp = '\0';
+					d = expand_expr(d, block, data);
+					}
+				else { // actually, this is error; but I ll pass..
+					*d ++ = '%';
+					if ( *p )
+						*d ++ = *p ++;
+					}
+				free(block);
 				}
 			}
-		else // not a command? just copy
-			*d ++ = *p;
-		if ( *p ) p ++; // next p
+		else // copy
+			*d ++ = *p ++;
 		}
+
 	*d = '\0';	// close string
 	return dest;
 }
@@ -209,17 +269,17 @@ int fl_remove(const char *name)
 // execute
 int execute(int flags)
 {
-	char	*cmds, *cmdbuf;
-	char	*cwd = (char *) malloc(PATH_MAX);
-	int		ignore, exit_status = 0;
+	char	*cmds;
+	int		ignore = 0, exit_status = 0;
 	list_node_t	*cur, *reptr;
 	struct stat st;
+	char	*cwd = (char *) malloc(PATH_MAX);
 	list_t	*items = list_create();
-	
+
 	push(items);
 	getcwd(cwd, PATH_MAX);
 //	printf("\nDIR: %s\n", cwd);
-	
+
 	// select files
 	cur = incl_list.root;
 	while ( cur ) {
@@ -239,11 +299,11 @@ int execute(int flags)
 			fl_remove(cur->key);
 		cur = cur->next;
 		}
-		
+
 	// for each item in the list
 	cur  = items->root;
 	cmds = list_to_string(&cmds_list, " ");
-	while ( cur ) {	
+	while ( cur ) {
 		ignore = 0;
 
 		// exclude items by regex
@@ -255,51 +315,40 @@ int execute(int flags)
 				}
 			reptr = reptr->next;
 			}
-		
+
 		// recursive loop into subdirectories
-		if ( !ignore && (flags & OFL_RECURS) ) { 
+		if ( !ignore && (flags & OFL_RECURS) ) {
 			if ( stat(cur->key, &st) == 0 ) {
 				if ( S_ISDIR(st.st_mode) ) {
 					push(cwd);
-					if ( chdir(cur->key) == 0 ) {
+					if ( chdir(cur->key) == 0 )
 						exit_status = execute(flags);
-						if ( exit_status && (flags & OFL_FORCE) == 0 ) { // not force-option
-							pop();
-							break;
-							}
-						}
 					else
 						fprintf(stderr, "change working directory to '%s' failed.\n", cur->key);
 					chdir(ppop());
 					}
 				}
+			if (exit_status && ((flags & OFL_FORCE) == 0)) break;
 			}
-			
+
 		// check file attributes
 		if ( !ignore && (flags & (OFL_PLAIN | OFL_DIREC)) ) { // file attribute check
 			if ( stat(cur->key, &st) == 0 )
 				ignore = ( (flags & OFL_PLAIN) && (!S_ISREG(st.st_mode)) ) ||
 						 ( (flags & OFL_DIREC) && (!S_ISDIR(st.st_mode)) );
 			}
-			
-		//
-		if ( ignore )
-			{ cur = cur->next; continue; }
-			
+
 		// execute
-		cmdbuf = dof(cmds, cur->key);
-		if ( (flags & OFL_EXEC) == 0 ) // not execute-option
-			fprintf(stdout, "%s\n", cmdbuf);
-		else {
-			if ( (exit_status = system(cmdbuf)) != 0 ) {
-				if ( (flags & OFL_FORCE) == 0 ) { // not force-option
-					free(cmdbuf);
-					break;
-					}
-				}
+		if ( !ignore && (exit_status == 0) ) {
+			char *command_line = expand(cmds, cur->key);
+			if ( (flags & OFL_EXEC) == 0 ) // not execute-option
+				fprintf(stdout, "%s\n", command_line);
+			else
+				exit_status = system(command_line);
+			free(command_line);
+			if (exit_status && ((flags & OFL_FORCE) == 0)) break;
 			}
-		free(cmdbuf);
-		
+
 		// next
 		cur = cur->next;
 		}
@@ -339,7 +388,7 @@ Options:\n\
 \t-e\texecute; dof displays what commands would be run, this option executes them.\n\
 \t-x\texclude glob patterns; the excluded list always has priority.\n\
 \t-g\texclude regex patterns; the excluded list always has priority.\n\
-\t-r\trecursive execution of commands into sub-directories.\n\
+\t-r\trecursive execution of commands into sub-directories (beta).\n\
 \t-f\tforce non-stop; dof stops on error, this option forces dof to ignore errors.\n\
 \t-p\tplain files only; directories, devices, etc are ignored.\n\
 \t-d\tdirectories only; plain files, devices, etc are ignored.\n\
@@ -386,7 +435,7 @@ void dof_init()
 	list_init(&incl_list);
 	list_init(&regx_list);
 	list_init(&excl_list);
-	
+
 	void dof_done();
 	atexit(dof_done);
 
@@ -397,7 +446,7 @@ void dof_init()
 void dof_done()
 {
 	list_node_t	*cur;
-	
+
 	cur = regx_list.root;
 	while ( cur ) {
 		regfree((regex_t *) (cur->data));
@@ -417,7 +466,7 @@ void dof_build_regex()
 	list_node_t	*cur;
 	int status;
 	char message[LINE_MAX];
-	
+
 	cur = regx_list.root;
 	while ( cur ) {
 		cur->data = (void *) malloc(sizeof(regex_t));
@@ -434,10 +483,7 @@ void dof_build_regex()
 int execute_recipe(const char *key, int flags)
 {
 	list_node_t	*cur;
-	
-	if ( strcmp(key, "help") == 0 )    { puts(usage); return 1; }
-	if ( strcmp(key, "version") == 0 ) { puts(verss); return 1; }
-	
+
 	cur = recp_list.root;
 	while ( cur ) {
 		if ( strcmp(cur->key, key) == 0 ) {
@@ -454,7 +500,7 @@ int execute_recipe(const char *key, int flags)
 			}
 		cur = cur->next;
 		}
-		
+
 	error("recipe '%s' not found", key);
 	return 1;
 }
@@ -498,7 +544,7 @@ int dof_addseq(stage_t stage, const char *src)
 		p = parse_num(p, buf);
 		step = atof(buf);
 		}
-		
+
 	// add
 	for ( double f = start; f <= last; f += step ) {
 		sprintf(buf, "%g", f);
@@ -523,7 +569,7 @@ int main(int argc, char **argv)
 			opt_seq = 0;
 			}
 		else if ( (argv[i][0] == '-') && (stage != Commands) ) {
-			
+
 			if ( argv[i][1] == '\0' ) {	// one minus, read from stdin
 				char	buf[LINE_MAX];
 				while ( fgets(buf, LINE_MAX, stdin) )
@@ -541,10 +587,15 @@ int main(int argc, char **argv)
 				case 'r': flags |= OFL_RECURS; break;
 				case 'g': stage = ExcludeRE; break;
 				case 'x': stage = ExcludeWC; break;
+				case 'u': opt_unquote = !opt_unquote; break;
 				case 'h': puts(usage); return 1;
 				case 'v': puts(verss); return 1;
 				case 's': opt_seq = 1; break;
-				case '-': return execute_recipe(argv[i]+2, flags);
+				case '-': // -- double minus
+					if ( strcmp(argv[i], "--help") == 0 )    { puts(usage); return 1; }
+					if ( strcmp(argv[i], "--version") == 0 ) { puts(verss); return 1; }
+					if ( strcmp(argv[i], "--vars") == 0 )    { print_vars(); return 1; }
+					return execute_recipe(argv[i]+2, flags);
 				case 'l': list_print(&recp_list, stdout); return 0;
 				default:
 					error("unknown option [%c]", argv[i][j]);
@@ -561,7 +612,7 @@ int main(int argc, char **argv)
 	if ( stage != Commands ) { // no commands specified
 		// error("`do' keyword missing; usage: dof <items> do <commands>\nrun `dof -h' for help"); return 1;
 		stage = Commands;
-		dof_additem(stage, "%f");		
+		dof_additem(stage, "%f");
 		}
 
 	dof_build_regex();
