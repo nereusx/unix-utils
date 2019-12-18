@@ -1,7 +1,7 @@
 \# exec: groff dof.1 -Tascii -man | less
 \#
 \# .TH cmd-name section [date [version [page-descr]]]
-.TH dof 1 "17 Dec 2019" "v1.7" "User Commands"
+.TH dof 1 "18 Dec 2019" "v1.8" "User Commands"
 .SH NAME
 dof \- (do-for) executes commands for each item of a list
 .SH SYNOPSIS
@@ -96,6 +96,9 @@ The extension without '.' prefix.
 .BR %h
 The home directory.
 .TP
+.BR %cwd
+The current working directory.
+.TP
 .BR %date
 The current date in YYYY-MM-DD format.
 .TP
@@ -113,20 +116,24 @@ You can get a list of all variables with '\fI--vars\fR' option.
 Modifiers defined by ':' that follows a variable and modifies the result string.
 You can have unlimited number of modifiers.
 .TP
-.BR l\fIc\fR
-Returns the string until the the first occurence of character 'c'.
+.BR l[{f|l|s}]\fIc\fR
+Returns the left part of the string until the \fBf\fRirst or \fBl\fRast occurrence of character \fIc\fR.
+The \fBs\fR uses the rest of the modifier's parameter as string to search.
 .TP
-.BR r\fIc\fR
-Returns the string until the last occurence of character 'c'.
-.TP
-.BR i\fIs\fR
-Returns the string until the occurence of string 's'.
+.BR r[{f|l|s}]\fIc\fR
+Returns the right part of the string until the \fBf\fRirst or \fBl\fRast occurrence of character \fIc\fR.
+The \fBs\fR uses the rest of the modifier's parameter as string to search.
 .TP
 .BR t\fIab\fR
-Replace all 'a' characters with 'b'.
+Replace all \fIa\fR characters with \fIb\fR.
+.PP
 .EX
 	# displays the time (hour and minutes only)
-	dof nil do %{time:t-::r:}
+	# %time = 09-15-25 (t-:) 09:15:25 (ll:) 09:15
+	dof nil do %{time:t-::ll:}
+
+	# the same with date
+	dof "`date -R`" do '%{f:ll :rl :ll:}'
 .EE
 \# .TP
 \# .BR %(expr)

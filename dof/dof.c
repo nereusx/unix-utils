@@ -137,24 +137,29 @@ char *expand_expr(char *dest, const char *source, const char *data)
 		while ( *p == ':' ) {
 			p ++;
 			switch ( *p ) {
-			case 'l':	// l<c> the left part of first occurence of 'c'
-				if ( (tp = strchr(buf, p[1])) != NULL )
-					*tp = '\0';
-				p += 2;
+			case 'l':	// l[{f|l}]<c> the left part of first|last occurence of 'c'
+				switch ( p[1] ) {
+				case 'f': tp = strchr (buf, p[2]); p += 3; break;
+				case 'l': tp = strrchr(buf, p[2]); p += 3; break;
+				case 's': tp = strstr (buf, p +2); p += strlen(p); break;
+				default:  tp = strchr (buf, p[1]); p += 2; }
+				if ( tp ) *tp = '\0';
 				break;
-			case 'r':	// r<c> the left part of last occurence of 'c'
-				if ( (tp = strrchr(buf, p[1])) != NULL )
-					*tp = '\0';
-				p += 2;
+			case 'r':	// r[{f|l}]<c> the right part of first|last occurence of 'c'
+				switch ( p[1] ) {
+				case 'f': tp = strchr (buf, p[2]); p += 3; break;
+				case 'l': tp = strrchr(buf, p[2]); p += 3; break;
+				case 's': tp = strstr (buf, p +2); p += strlen(p); break;
+				default:  tp = strchr (buf, p[1]); p += 2; }
+				if ( tp ) {
+					char *tmp = strdup(tp+1);
+					strcpy(buf, tmp);
+					free(tmp);
+					}
 				break;
 			case 't':	// t<a><b> replaces all occurences of 'a' to 'b' (character)
 				strtotr(buf, p[1], p[2]);
 				p += 3;
-				break;
-			case 'i':	// i<s> the left part of first occurence of string 's'
-				if ( (tp = strstr(buf, p+1)) != NULL )
-					*tp = '\0';
-				p += strlen(p);
 				break;
 				}
 			}
@@ -397,7 +402,7 @@ int conf_parser(char *source)
 #define APP_DESCR \
 "dof (do-for) run commands for each element of 'list'."
 
-#define APP_VER "1.7"
+#define APP_VER "1.8"
 
 static const char *usage = "\
 Usage: dof [list] [-x patterns] [do [commands]]\n\
@@ -418,7 +423,7 @@ Options:\n\
 \t-h\tthis screen\n\
 \t-v\tversion and program information\n\
 \n\
-Variables:\n\
+Variables (use: dof --vars):\n\
 \t%f\tthe string (if file; the full path name)\n\
 \t%b\tthe basename (no directory, no extension)\n\
 \t%d\tthe directory (without trailing '/')\n\
@@ -426,8 +431,9 @@ Variables:\n\
 \n\
 Modifiers:\n\
 modifiers defined by ':' that follows a variable and modifies the result string. You can have unlimited number of modifiers.\n\
-\tlc\treturns the string until the the first occurence of 'c'\n\
-\trc\treturns the string until the last occurence of 'c'\n\
+\tl[{f|l}]c\treturns the string until the the first|last occurence of 'c'\n\
+\tr[{f|l}]c\treturns the right part of the string from the first|last occurence of 'c'\n\
+\ttab\treplaces all 'a' characters with 'b' character\n\
 \tis\treturns the string until the occurence of string 's'\n\
 ";
 
