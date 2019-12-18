@@ -23,7 +23,7 @@ This is useful on c-shell where you cannot use one-line `foreach` statements.
 dof -e *.mp3 do ffmpeg -i "%f" "%b.ogg"
 	
 # display colors on terminal
-dof -e -s:0..15 do 'tput setaf %f; echo colour%f; tput op;'
+dof -e -s 0..15 do 'tput setaf %f; echo colour%f; tput op;'
 	
 # remove all files except *.c and *.tex
 dof -e * -g *.{c,tex} do 'rm %f'
