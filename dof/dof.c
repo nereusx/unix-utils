@@ -24,6 +24,7 @@
  * 	Written by Nicholas Christopoulos <nereus@freemail.gr>
  */
 
+#include <time.h>
 #include "panic.h"
 #include "str.h"
 #include "list.h"
@@ -59,6 +60,18 @@ void	v_basename(const char *arg, char *rv)	{ strcpy(rv, basename(arg)); }
 void	v_dirname(const char *arg, char *rv)	{ strcpy(rv, dirname(arg)); }
 void	v_extname(const char *arg, char *rv)	{ strcpy(rv, extname(arg)); }
 void	v_getcwd(const char *arg, char *rv)		{ getcwd(rv, PATH_MAX); }
+void	v_getdate(const char *arg, char *rv)
+{
+	time_t now; time(&now);
+	struct tm *local = localtime(&now);
+	sprintf(rv, "%d-%02d-%02d", local->tm_year + 1900, local->tm_mon + 1, local->tm_mday);
+}
+void	v_gettime(const char *arg, char *rv)
+{
+	time_t now; time(&now);
+	struct tm *local = localtime(&now);
+	sprintf(rv, "%02d-%02d-%02d", local->tm_hour, local->tm_min, local->tm_sec);
+}
 
 typedef struct {
 	const char *name;
@@ -75,6 +88,8 @@ dof_var_t dof_vars[] = {
 	{ "h", v_gethome,  NULL,   "the home directory" },
 	{ "home", v_gethome, NULL, "the home directory" },
 	{ "cwd", v_getcwd, NULL,   "the current working directory" },
+	{ "date", v_getdate, NULL, "the current date in the form YYYY-MM-DD" },
+	{ "time", v_gettime, NULL, "the current time in the form HH-MM-SS" },
 	{ "q",  NULL, "'",         "single quote character (')" },
 	{ "dq", NULL, "\"",        "double quote character (\")" },
 	{ "bq", NULL, "`",         "backquote character (`)" },
@@ -131,6 +146,10 @@ char *expand_expr(char *dest, const char *source, const char *data)
 				if ( (tp = strrchr(buf, p[1])) != NULL )
 					*tp = '\0';
 				p += 2;
+				break;
+			case 't':	// t<a><b> replaces all occurences of 'a' to 'b' (character)
+				strtotr(buf, p[1], p[2]);
+				p += 3;
 				break;
 			case 'i':	// i<s> the left part of first occurence of string 's'
 				if ( (tp = strstr(buf, p+1)) != NULL )

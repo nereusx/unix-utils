@@ -54,9 +54,9 @@ char *delete(const char *source, int pos, int count);
 
 //
 #define strtotr(b,s,r)\
-	{ for(char *p=(b); *p; p ++) if (*p == (s)) *p = (r); }
+	{ for(char *_=(b); *_; _ ++) if (*_ == (s)) *_ = (r); }
 #define strtomtr(b,s,r)\
-	{ for(const char *p=(s); *p; p ++) strtotr((b), *p, (r)[p-(s)]); }
+	{ for(const char *__=(s); *__; __ ++) strtotr((b), *__, (r)[__-(s)]); }
 
 // constant list of words
 cwords_t *cwords_create();

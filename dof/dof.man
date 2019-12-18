@@ -96,6 +96,12 @@ The extension without '.' prefix.
 .BR %h
 The home directory.
 .TP
+.BR %date
+The current date in YYYY-MM-DD format.
+.TP
+.BR %time
+The current time in HH-MM-SS format.
+.TP
 .BR %%
 The character '%'.
 .TP
@@ -107,14 +113,21 @@ You can get a list of all variables with '\fI--vars\fR' option.
 Modifiers defined by ':' that follows a variable and modifies the result string.
 You can have unlimited number of modifiers.
 .TP
-.BR l\fIc...\fR
+.BR l\fIc\fR
 Returns the string until the the first occurence of character 'c'.
 .TP
-.BR r\fIc...\fR
+.BR r\fIc\fR
 Returns the string until the last occurence of character 'c'.
 .TP
 .BR i\fIs\fR
 Returns the string until the occurence of string 's'.
+.TP
+.BR t\fIab\fR
+Replace all 'a' characters with 'b'.
+.EX
+	# displays the time (hour and minutes only)
+	dof nil do %{time:t-::r:}
+.EE
 \# .TP
 \# .BR %(expr)
 \# string processing expression... not used yet.
