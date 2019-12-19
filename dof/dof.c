@@ -434,7 +434,7 @@ int conf_parser(char *source)
 #define APP_DESCR \
 "dof (do-for) run commands for each element of 'list'."
 
-#define APP_VER "1.8"
+#define APP_VER "1.9"
 
 static const char *usage = "\
 Usage: dof [list] [-x patterns] [do [commands]]\n\
