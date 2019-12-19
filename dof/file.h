@@ -33,6 +33,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <unistd.h>
 #include <limits.h>
+#include <dirent.h>
 
 #define isdots(s) ((s)[0]=='.' && ((s)[1]=='\0' || ((s)[1]=='.' && (s)[2]=='\0')))
 
@@ -43,6 +44,8 @@ const char *dirname(const char *source);
 const char *extname(const char *source);
 
 void	wclist(const char *pattern, int (*callback)(const char *));
+#define DIRWALK_RECURSIVE	0x01
+int		dirwalk(const char *path, int (*callback)(const char *file, const char *path, int dtype, void *app_p), int flags, void *params);
 int		readconf(const char *appname, int (*parser)(char *));
 
 #ifdef __cplusplus

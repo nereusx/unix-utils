@@ -1,7 +1,7 @@
 \# exec: groff dof.1 -Tascii -man | less
 \#
 \# .TH cmd-name section [date [version [page-descr]]]
-.TH dof 1 "19 Dec 2019" "v1.9" "User Commands"
+.TH dof 1 "19 Dec 2019" "v1.10" "User Commands"
 .SH NAME
 dof \- (do-for) executes commands for each item of a list
 .SH SYNOPSIS
@@ -43,6 +43,13 @@ Exclude list; after \fB-x\fR are following glob's patterns to exclude items from
 When the pattern is unquoted it will expanded by the shell otherwise 'glob()' will be used in each directory.
 See
 .BR glob (3)
+.TP
+.BR \-X
+Exclude directories list; after \fB-X\fR are following glob's patterns to exclude directories
+on recursive (\fI-r\fR) run.
+When the pattern is unquoted it will expanded by the shell otherwise 'fnmatch()' will be used in each directory.
+See
+.BR fnmatch (3)
 .TP
 .BR \-g
 Exclude list; after \fB-g\fR are following regex's patterns to exclude items from the previous list.
@@ -159,6 +166,7 @@ Example:
 Items '.' and '..' are ignored.
 .SH SEE ALSO
 .BR glob (3),
+.BR fnmatch (3),
 .BR regex (7)
 .PP
 .SH AUTHOR

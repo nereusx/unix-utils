@@ -21,6 +21,8 @@
 
 #include <stdio.h>
 #include <glob.h>
+#include <assert.h>
+#include "panic.h"
 #include "str.h"
 #include "file.h"
 
@@ -162,5 +164,43 @@ int	readconf(const char *appname, int (*parser)(char *))
 			}
 		}
 	return retval;
+}
+
+//
+int dirwalk(const char *path, int (*callback)(const char *, const char *, int, void*), int flags, void *params)
+{
+	struct dirent *entry;
+	const char *dname;
+	DIR		*dp;
+	int		status = 0;
+
+	if ( (dp = opendir(path)) == NULL ) {
+		error("%s:%d = [%s]\n", __FILE__, __LINE__, path);
+		perror("opendir");
+	    return -1;
+		}
+
+	char *cwd = (char *) malloc(PATH_MAX);
+	getcwd(cwd, PATH_MAX);
+	
+	while ( (entry = readdir(dp)) ) {
+		dname = entry->d_name;
+		if ( isdots(dname) ) continue;
+		status = callback(dname, cwd, entry->d_type, params);
+		if ( status ) break;
+		if ( (flags & DIRWALK_RECURSIVE) && (entry->d_type == DT_DIR) ) { // recursive behavor
+			if ( chdir(dname) == 0 ) {
+				status = dirwalk(".", callback, flags, params);
+				assert(chdir(cwd) == 0);
+				}
+			else
+				warning("cannot change working directory to '%s'", dname);
+			if ( status ) break;
+			}
+		}
+
+	free(cwd);
+	closedir(dp);
+	return status;
 }
 
