@@ -47,11 +47,12 @@ static list_t regx_list;	// regex exclude list
 static list_t excl_list;	// wc-patterns exclude list
 static list_t dexc_list;	// wc-patterns exclude directories (recursive -X flag)
 static list_t dreg_list;	// regex exclude driectories (recursive -G flag)
+list_t *dof_lists[]={&cmds_list,&recp_list,&incl_list,&regx_list,&excl_list,&dexc_list,&dreg_list,NULL};
 
 static int opt_flags;		// global version of execute's flags, too much passing in/out
 
 // just a small stack to store a few pointers for recursive issues
-static void *stack[256];	// the stack storage
+static void *stack[0x100];	// the stack storage, ah reminds me CP/M's ORG 100h
 static void **sp = stack;	// stack pointer (top)
 #define push(p) *sp ++ = p
 #define pop()   -- sp
@@ -67,18 +68,16 @@ void	v_basename(const char *arg, char *rv)	{ strcpy(rv, basename(arg)); }
 void	v_dirname(const char *arg, char *rv)	{ strcpy(rv, dirname(arg)); }
 void	v_extname(const char *arg, char *rv)	{ strcpy(rv, extname(arg)); }
 void	v_getcwd(const char *arg, char *rv)		{ getcwd(rv, PATH_MAX); }
-void	v_getdate(const char *arg, char *rv)
-{
+void	v_getdate(const char *arg, char *rv)	{
 	time_t now; time(&now);
 	struct tm *local = localtime(&now);
 	sprintf(rv, "%d-%02d-%02d", local->tm_year + 1900, local->tm_mon + 1, local->tm_mday);
-}
-void	v_gettime(const char *arg, char *rv)
-{
+	}
+void	v_gettime(const char *arg, char *rv)	{
 	time_t now; time(&now);
 	struct tm *local = localtime(&now);
 	sprintf(rv, "%02d-%02d-%02d", local->tm_hour, local->tm_min, local->tm_sec);
-}
+	}
 
 typedef struct {
 	const char *name;
@@ -103,7 +102,7 @@ dof_var_t dof_vars[] = {
 	{ NULL, NULL, NULL, NULL } // end-of-list
 };
 
-//
+// print out all registered variables 
 void	print_vars()
 {
 	for ( int i = 0; dof_vars[i].name; i ++ )
@@ -120,9 +119,7 @@ char *expand_expr(char *dest, const char *source, const char *data)
 	int  i, found;
 
 	// get variable name
-	n = name;
-	while ( isalnum(*p) )
-		*n ++ = *p ++;
+	for ( n = name; isalnum(*p); *n ++ = *p ++ );
 	*n = '\0';
 
 	// find and copy variable's data
@@ -202,9 +199,7 @@ char *expand_expr(char *dest, const char *source, const char *data)
 			}
 
 		// copy result to dest
-		p = buf;
-		while ( *p )
-			*d ++ = *p ++;
+		for ( p = buf; *p; *d ++ = *p ++ );
 		}
 	else
 		error("unknown variable '%%%s'", name);
@@ -223,12 +218,10 @@ char *expand(const char *source, const char *data)
 	int count = 0, maxlen;
 
 	// calculate a maximum length for the returned buffer
-	p = source;
-	while ( p ) {
-		count ++;
-		p = strchr(p + 1, '%');
-		}
-	maxlen = BUFSZ;
+	// well that was good before i add regex find & replace,
+	// so add a BUFSZ for safety, after all it is temporary in heap
+	for ( p = source; p; count ++, p = strchr(p + 1, '%'));
+	maxlen = BUFSZ + strlen(source) + strlen(data) * count + 1;
 
 	// replace strings
 	dest = (char *) malloc(maxlen);
@@ -259,10 +252,7 @@ char *expand(const char *source, const char *data)
 			p ++;
 			if ( *p == '%' || *p == '\'' || *p == '"' || *p == '\\' ) // few special chars
 				*d ++ = *p ++;
-			else if ( *p == '~' ) {
-				d = expand_expr(d, "h", data);
-				p ++;
-				}
+			else if ( *p == '~' ) { d = expand_expr(d, "h", data); p ++; }
 			else {
 				char *block = (char *) malloc(BUFSZ), *bp;
 				char mark = ' ';
@@ -275,25 +265,16 @@ char *expand(const char *source, const char *data)
 
 					// copy internal block
 					p ++;
-					bp = block;
-					while ( *p ) {
-						if ( *p == mark ) {
-							p ++;
-							break;
-							}
-						*bp ++ = *p ++;
-						}
+					for ( bp = block; *p; *bp ++ = *p ++ )
+						if ( *p == mark ) {	p ++; break; }
 					*bp = '\0';
 					d = expand_expr(d, block, data);
 					}
 				else if ( isalnum(*p) ) {
-					bp = block;
-					while ( isalnum(*p) )
-						*bp ++ = *p ++;
-					if ( *p == ':' ) { // modifier follows
+					for ( bp = block; isalnum(*p); *bp ++ = *p ++ );
+					if ( *p == ':' ) // modifier follows
 						while ( *p && !isspace(*p) )
 							*bp ++ = *p ++;
-						}
 					*bp = '\0';
 					d = expand_expr(d, block, data);
 					}
@@ -354,24 +335,18 @@ int execute(int flags)
 //	printf("DIR: %s\n", cwd);
 
 	// select files
-	cur = incl_list.root;
-	while ( cur ) {
+	for ( cur = incl_list.root; cur; cur = cur->next )
 		if ( iswcpat(cur->key) )
 			wclist(cur->key, fl_append);
 		else
 			fl_append(cur->key);
-		cur = cur->next;
-		}
 
 	// exclude files
-	cur = excl_list.root;
-	while ( cur ) {
+	for ( cur = excl_list.root; cur; cur = cur->next )
 		if ( iswcpat(cur->key) )
 			wclist(cur->key, fl_remove);
 		else
 			fl_remove(cur->key);
-		cur = cur->next;
-		}
 
 	// for each item in the list
 	cur  = items->root;
@@ -391,7 +366,7 @@ int execute(int flags)
 
 		// check file attributes
 		if ( !ignore && (flags & (OFL_PLAIN | OFL_DIREC)) ) { // file attribute check
-			if ( stat(cur->key, &st) == 0 )
+			if ( lstat(cur->key, &st) == 0 )
 				ignore = ( (flags & OFL_PLAIN) && (!S_ISREG(st.st_mode)) ) ||
 						 ( (flags & OFL_DIREC) && (!S_ISDIR(st.st_mode)) );
 			}
@@ -466,10 +441,10 @@ Variables (use: dof --vars):\n\
 \n\
 Modifiers:\n\
 modifiers defined by ':' that follows a variable and modifies the result string. You can have unlimited number of modifiers.\n\
-\tl[{f|l}]c\treturns the string until the the first|last occurence of 'c'\n\
-\tr[{f|l}]c\treturns the right part of the string from the first|last occurence of 'c'\n\
+\tl[{f|l|s}]c\treturns the string until the the first|last occurence of 'c'\n\
+\tr[{f|l|s}]c\treturns the right part of the string from the first|last occurence of 'c'\n\
 \ttab\treplaces all 'a' characters with 'b' character\n\
-\tis\treturns the string until the occurence of string 's'\n\
+\ts/l/r/[g]\tusing regex to find 'l' and replace it with 'r'; the 'g' changes all occurrences of 'l'\n\
 ";
 
 static const char *verss = "\
@@ -490,17 +465,10 @@ typedef enum stage_e { Items = 0, Commands, ExcludeRE, ExcludeWC, ExcludeDirWC, 
 // initialize globals
 void dof_init()
 {
-	list_init(&cmds_list);
-	list_init(&recp_list);
-	list_init(&incl_list);
-	list_init(&regx_list);
-	list_init(&excl_list);
-	list_init(&dexc_list);
-	list_init(&dreg_list);
-
+	for ( int i = 0; dof_lists[i]; i ++ )
+		list_init(dof_lists[i]);
 	void dof_done();
 	atexit(dof_done);
-
 	readconf("dof", conf_parser);
 }
 
@@ -508,26 +476,12 @@ void dof_init()
 void dof_done()
 {
 	list_node_t	*cur;
-
-	cur = regx_list.root;
-	while ( cur ) {
+	for ( cur = regx_list.root; cur; cur = cur->next )
 		regfree((regex_t *) (cur->data));
-		cur = cur->next;
-		}
-
-	cur = dreg_list.root;
-	while ( cur ) {
+	for ( cur = dreg_list.root; cur; cur = cur->next )
 		regfree((regex_t *) (cur->data));
-		cur = cur->next;
-		}
-	
-	list_clear(&dreg_list);
-	list_clear(&dexc_list);
-	list_clear(&excl_list);
-	list_clear(&regx_list);
-	list_clear(&cmds_list);
-	list_clear(&recp_list);
-	list_clear(&incl_list);
+	for ( int i = 0; dof_lists[i]; i ++ )
+		list_clear(dof_lists[i]);
 }
 
 // build regex_t table
