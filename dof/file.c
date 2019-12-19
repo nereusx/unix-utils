@@ -167,7 +167,7 @@ int	readconf(const char *appname, int (*parser)(char *))
 }
 
 //
-int dirwalk(const char *path, int (*callback)(const char *, const char *, int, void*), int flags, void *params)
+int ddwalk(const char *path, int (*callback)(const char *, void*), int flags, void *params)
 {
 	struct dirent *entry;
 	const char *dname;
@@ -183,19 +183,21 @@ int dirwalk(const char *path, int (*callback)(const char *, const char *, int, v
 	char *cwd = (char *) malloc(PATH_MAX);
 	getcwd(cwd, PATH_MAX);
 	
-	while ( (entry = readdir(dp)) ) {
+	status = callback(cwd, params);
+	
+	while ( (status == 0) && ((entry = readdir(dp)) != NULL) ) {
 		dname = entry->d_name;
 		if ( isdots(dname) ) continue;
-		status = callback(dname, cwd, entry->d_type, params);
-		if ( status ) break;
-		if ( (flags & DIRWALK_RECURSIVE) && (entry->d_type == DT_DIR) ) { // recursive behavor
-			if ( chdir(dname) == 0 ) {
-				status = dirwalk(".", callback, flags, params);
-				assert(chdir(cwd) == 0);
+		if ( entry->d_type == DT_DIR ) {
+			if ( (flags & DIRWALK_RECURSIVE) && (entry->d_type == DT_DIR) ) { // recursive behavor
+				if ( chdir(dname) == 0 ) {
+					status = ddwalk(".", callback, flags, params);
+					assert(chdir(cwd) == 0);
+					}
+				else
+					warning("cannot change working directory to '%s'", dname);
+				if ( status ) break;
 				}
-			else
-				warning("cannot change working directory to '%s'", dname);
-			if ( status ) break;
 			}
 		}
 

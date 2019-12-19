@@ -46,6 +46,7 @@ static list_t incl_list;	// wc-patterns include list
 static list_t regx_list;	// regex exclude list
 static list_t excl_list;	// wc-patterns exclude list
 static list_t dexc_list;	// wc-patterns exclude directories (recursive -X flag)
+static list_t dreg_list;	// regex exclude driectories (recursive -G flag)
 
 static int opt_flags;		// global version of execute's flags, too much passing in/out
 
@@ -350,7 +351,7 @@ int execute(int flags)
 
 	push(items);
 	getcwd(cwd, PATH_MAX);
-//	printf("\nDIR: %s\n", cwd);
+//	printf("DIR: %s\n", cwd);
 
 	// select files
 	cur = incl_list.root;
@@ -435,7 +436,7 @@ int conf_parser(char *source)
 #define APP_DESCR \
 "dof (do-for) run commands for each element of 'list'."
 
-#define APP_VER "1.10"
+#define APP_VER "1.11"
 
 static const char *usage = "\
 Usage: dof [list] [-x patterns] [do [commands]]\n\
@@ -484,7 +485,7 @@ Written by Nicholas Christopoulos <mailto:nereus@freemail.gr>\n\
 ";
 
 // parsing arguments stages
-typedef enum stage_e { Items = 0, Commands, ExcludeRE, ExcludeWC, ExcludeDirWC } stage_t;
+typedef enum stage_e { Items = 0, Commands, ExcludeRE, ExcludeWC, ExcludeDirWC, ExcludeDirRE } stage_t;
 
 // initialize globals
 void dof_init()
@@ -495,6 +496,7 @@ void dof_init()
 	list_init(&regx_list);
 	list_init(&excl_list);
 	list_init(&dexc_list);
+	list_init(&dreg_list);
 
 	void dof_done();
 	atexit(dof_done);
@@ -513,6 +515,13 @@ void dof_done()
 		cur = cur->next;
 		}
 
+	cur = dreg_list.root;
+	while ( cur ) {
+		regfree((regex_t *) (cur->data));
+		cur = cur->next;
+		}
+	
+	list_clear(&dreg_list);
 	list_clear(&dexc_list);
 	list_clear(&excl_list);
 	list_clear(&regx_list);
@@ -529,6 +538,17 @@ void dof_build_regex()
 	char message[BUFSZ];
 
 	cur = regx_list.root;
+	while ( cur ) {
+		cur->data = (void *) malloc(sizeof(regex_t));
+		status = regcomp((regex_t *) (cur->data), cur->key, REG_EXTENDED|REG_NEWLINE|REG_NOSUB);
+		if ( status != 0 ) {
+			regerror(status, (regex_t *) (cur->data), message, BUFSZ);
+			panic("Regex error compiling '%s': %s\n", cur->key, message);
+			}
+		cur = cur->next;
+		}
+
+	cur = dreg_list.root;
 	while ( cur ) {
 		cur->data = (void *) malloc(sizeof(regex_t));
 		status = regcomp((regex_t *) (cur->data), cur->key, REG_EXTENDED|REG_NEWLINE|REG_NOSUB);
@@ -578,6 +598,7 @@ void dof_additem(stage_t stage, const char *data)
 	case ExcludeRE:	list_add(&regx_list, data);	break;
 	case ExcludeWC:	list_add(&excl_list, data);	break;
 	case ExcludeDirWC:	list_add(&dexc_list, data);	break;
+	case ExcludeDirRE:	list_add(&dreg_list, data);	break;
 		}
 }
 
@@ -616,33 +637,19 @@ int dof_addseq(stage_t stage, const char *src)
 }
 
 //
-int recurs_exec_cb(const char *file, const char *cwd, int dtype, void *pars)
+int recurs_exec_cb(const char *path, void *pars)
 {
-//	printf("%02X [%s] [%s]\n", dtype, cwd, file); return 0;
-
-	if ( dexc_list.root ) { // exclude directories list is defined
-		list_node_t *cur;
-		int found = 0;
-		char *path = (char *) malloc(PATH_MAX);
-		strcpy(path, cwd);
-		if ( path[strlen(path)-1] != '/' )
-			strcat(path, "/");
-		strcat(path, file);
-		
-		// exclude directories
-		cur = dexc_list.root;
-		while ( cur ) {
-			if ( fnmatch(cur->key, path, 0) == 0 ) {
-				found ++;
-				break;
-				}
-			cur = cur->next;
-			}
-		free(path);
-		if ( found ) return 0; // ignore this directory
+	if ( dexc_list.root ) { // exclude directories list
+		for ( list_node_t *cur = dexc_list.root; cur; cur = cur->next )
+			if ( fnmatch(cur->key, path, /*FNM_PATHNAME |*/ FNM_PERIOD ) == 0 )
+				return 0;
 		}
-	
-	return execute(opt_flags);
+	if ( dreg_list.root ) { // exclude directories list (regex)
+		for ( list_node_t *cur = dreg_list.root; cur; cur = cur->next )
+			if ( rex_match((regex_t *)cur->data, path) )
+				return 0;
+		}
+	return execute(*(int*)pars);
 }
 
 // main()
@@ -678,6 +685,7 @@ int main(int argc, char **argv)
 				case 'd': flags |= OFL_DIREC; break;
 				case 'r': flags |= OFL_RECURS; break;
 				case 'g': stage = ExcludeRE; break;
+				case 'G': stage = ExcludeDirRE; break;
 				case 'x': stage = ExcludeWC; break;
 				case 'X': stage = ExcludeDirWC; break;
 				case 'u': opt_unquote = !opt_unquote; break;
@@ -711,7 +719,7 @@ int main(int argc, char **argv)
 	dof_build_regex();
 	opt_flags = flags;
 	if ( flags & OFL_RECURS )
-		status = dirwalk(".", recurs_exec_cb, DIRWALK_RECURSIVE, NULL);
+		status = ddwalk(".", recurs_exec_cb, DIRWALK_RECURSIVE, &flags);
 	else
 		status = execute(flags);
 	return status;

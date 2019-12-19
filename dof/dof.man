@@ -1,7 +1,7 @@
 \# exec: groff dof.1 -Tascii -man | less
 \#
 \# .TH cmd-name section [date [version [page-descr]]]
-.TH dof 1 "19 Dec 2019" "v1.10" "User Commands"
+.TH dof 1 "19 Dec 2019" "v1.11" "User Commands"
 .SH NAME
 dof \- (do-for) executes commands for each item of a list
 .SH SYNOPSIS
@@ -56,9 +56,21 @@ Exclude list; after \fB-g\fR are following regex's patterns to exclude items fro
 Since the \fIdof\fR parameters can be anything, this is no glob file-patterns but regex's patterns.
 Example '*.c' file-pattern should be written as '.*\\.c'.
 .TP
+.BR \-G
+Exclude directories list for recursive run by using POSIX regular expressions.
+.TP
 .BR \-r
 Recursive execution into subdirectories. You have to be sure that you type wildcard patterns quoted,
 otherwise the wildcards will expanded by the shell in the first directory.
+.PP
+.EX
+	# prints all directories except .git related
+	dof -rd '*' -X '*/.git*' do %cwd/%f
+	
+	# the previous but using regex
+	dof -rd '*' -G '/.git($|/)' do %cwd/%f
+.EE
+.PP
 .TP
 .BR \-f
 Force non-stop; \fIdof\fR stops on error (exit code != 0), this option forces \fIdof\fR to ignore them.

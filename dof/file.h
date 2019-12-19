@@ -45,7 +45,7 @@ const char *extname(const char *source);
 
 void	wclist(const char *pattern, int (*callback)(const char *));
 #define DIRWALK_RECURSIVE	0x01
-int		dirwalk(const char *path, int (*callback)(const char *file, const char *path, int dtype, void *app_p), int flags, void *params);
+int		ddwalk(const char *path, int (*callback)(const char *path, void *app_p), int flags, void *params);
 int		readconf(const char *appname, int (*parser)(char *));
 
 #ifdef __cplusplus
