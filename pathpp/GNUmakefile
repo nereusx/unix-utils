@@ -4,7 +4,7 @@
 APPNAME := path++
 INSTALL := /bin
 MANDIR  := /usr/share/man/man1
-CFLAGS  := -O -Wall -Wno-unused-result -static
+CFLAGS  := -Os -Wall
 
 all: $(APPNAME)
 
