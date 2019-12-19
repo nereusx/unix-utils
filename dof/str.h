@@ -66,7 +66,10 @@ int cwords_add(cwords_t *list, const char *src);
 cwords_t *strtocwords(char *buf);
 
 // regex
-int match_regex(regex_t *r, const char *to_match);
+int res_match(const char *pattern, const char *source);
+int rex_match(regex_t *r, const char *source);
+int res_replace(const char *pattern, char *source, const char *repl, size_t max_matches);
+int rex_replace(regex_t *r, char *source, const char *repl, size_t max_matches);
 
 // parsing
 const char *parse_num(const char *src, char *buf);

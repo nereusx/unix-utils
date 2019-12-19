@@ -30,6 +30,8 @@
 #include "list.h"
 #include "file.h"
 
+#define BUFSZ		LINE_MAX
+
 // options - flags
 #define OFL_EXEC    0x01	// execute commands (otherwise it is just displays)
 #define OFL_FORCE   0x02	// force: on error continue
@@ -106,9 +108,9 @@ void	print_vars()
 // expand '%' expressions
 char *expand_expr(char *dest, const char *source, const char *data)
 {
-	const char *p = source;
-	char *d = dest;
-	char *buf = (char *) malloc(LINE_MAX);
+	const char *p = source, *pn;
+	char *d = dest, *tp;
+	char *buf = (char *) malloc(BUFSZ);
 	char name[32], *n;
 	int  i, found;
 
@@ -131,25 +133,30 @@ char *expand_expr(char *dest, const char *source, const char *data)
 		}
 
 	if ( found ) {
-		char *tp;
-
 		// modifiers
 		while ( *p == ':' ) {
 			p ++;
+
 			switch ( *p ) {
-			case 'l':	// l[{f|l}]<c> the left part of first|last occurence of 'c'
+			case 'l':	// l[{f|l}]<c> the left part of first|last occurrence of 'c'
 				switch ( p[1] ) {
 				case 'f': tp = strchr (buf, p[2]); p += 3; break;
 				case 'l': tp = strrchr(buf, p[2]); p += 3; break;
-				case 's': tp = strstr (buf, p +2); p += strlen(p); break;
+				case 's':
+					tp = strstr (buf, p +2);
+					p = ((pn = strchr(p, ':')) == NULL) ? p + strlen(p) : pn;
+					break;
 				default:  tp = strchr (buf, p[1]); p += 2; }
 				if ( tp ) *tp = '\0';
 				break;
-			case 'r':	// r[{f|l}]<c> the right part of first|last occurence of 'c'
+			case 'r':	// r[{f|l}]<c> the right part of first|last occurrence of 'c'
 				switch ( p[1] ) {
 				case 'f': tp = strchr (buf, p[2]); p += 3; break;
 				case 'l': tp = strrchr(buf, p[2]); p += 3; break;
-				case 's': tp = strstr (buf, p +2); p += strlen(p); break;
+				case 's':
+					tp = strstr (buf, p +2);
+					p = ((pn = strchr(p, ':')) == NULL) ? p + strlen(p) : pn;
+					break;
 				default:  tp = strchr (buf, p[1]); p += 2; }
 				if ( tp ) {
 					char *tmp = strdup(tp+1);
@@ -157,9 +164,34 @@ char *expand_expr(char *dest, const char *source, const char *data)
 					free(tmp);
 					}
 				break;
-			case 't':	// t<a><b> replaces all occurences of 'a' to 'b' (character)
+			case 't':	// t<a><b> replaces all occurrences of 'a' to 'b' (character)
 				strtotr(buf, p[1], p[2]);
 				p += 3;
+				break;
+			case 's':	// s/str/str/[g]
+				p ++;
+				if ( *p ) {
+					char mark = *p ++; // first mark
+					int  len = strlen(p);
+					char str1[len], str2[len];
+					for ( tp = str1; *p && *p != mark; *tp ++ = *p ++ );
+					*tp = '\0';
+					if ( *p == mark ) { // middle
+						p ++;
+						for ( tp = str2; *p && *p != mark; *tp ++ = *p ++ );
+						*tp = '\0';
+						if ( *p == mark ) { // final
+							int gflag = 0;
+							p ++;
+							if ( *p == 'g' ) { gflag = 1; p ++; }
+							// now replace str1 on buf with str2
+							if ( gflag )
+								res_replace(str1, buf, str2, 32);
+							else
+								res_replace(str1, buf, str2, 1);
+							}
+						}
+					}
 				break;
 				}
 			}
@@ -191,7 +223,7 @@ char *expand(const char *source, const char *data)
 		count ++;
 		p = strchr(p + 1, '%');
 		}
-	maxlen = strlen(source) + strlen(data) * count + 1;
+	maxlen = BUFSZ;
 
 	// replace strings
 	dest = (char *) malloc(maxlen);
@@ -227,7 +259,7 @@ char *expand(const char *source, const char *data)
 				p ++;
 				}
 			else {
-				char *block = (char *) malloc(LINE_MAX), *bp;
+				char *block = (char *) malloc(BUFSZ), *bp;
 				char mark = ' ';
 
 				if ( ispunct(*p) ) { // %{form} or %(form) or %/form/
@@ -333,7 +365,7 @@ int execute(int flags)
 		// exclude items by regex
 		reptr = regx_list.root;
 		while ( reptr ) {
-			if ( match_regex((regex_t *) reptr->data, cur->key) ) {
+			if ( rex_match((regex_t *) reptr->data, cur->key) ) {
 				ignore ++;
 				break;
 				}
@@ -490,14 +522,14 @@ void dof_build_regex()
 {
 	list_node_t	*cur;
 	int status;
-	char message[LINE_MAX];
+	char message[BUFSZ];
 
 	cur = regx_list.root;
 	while ( cur ) {
 		cur->data = (void *) malloc(sizeof(regex_t));
-		status = regcomp((regex_t *) (cur->data), cur->key, REG_EXTENDED|REG_NEWLINE);
+		status = regcomp((regex_t *) (cur->data), cur->key, REG_EXTENDED|REG_NEWLINE|REG_NOSUB);
 		if ( status != 0 ) {
-			regerror(status, (regex_t *) (cur->data), message, LINE_MAX);
+			regerror(status, (regex_t *) (cur->data), message, BUFSZ);
 			panic("Regex error compiling '%s': %s\n", cur->key, message);
 			}
 		cur = cur->next;
@@ -512,7 +544,7 @@ int execute_recipe(const char *key, int flags)
 	cur = recp_list.root;
 	while ( cur ) {
 		if ( strcmp(cur->key, key) == 0 ) {
-			char cmd[LINE_MAX];
+			char cmd[BUFSZ];
 			char opt[32];
 			opt[0] = '\0';
 			if ( flags & OFL_EXEC   ) strcat(opt, "-e ");
@@ -520,7 +552,7 @@ int execute_recipe(const char *key, int flags)
 			if ( flags & OFL_PLAIN  ) strcat(opt, "-p ");
 			if ( flags & OFL_DIREC  ) strcat(opt, "-d ");
 			if ( flags & OFL_RECURS ) strcat(opt, "-r ");
-			snprintf(cmd, LINE_MAX, "dof %s %s", opt, (char *) cur->data);
+			snprintf(cmd, BUFSZ, "dof %s %s", opt, (char *) cur->data);
 			return system(cmd);
 			}
 		cur = cur->next;
@@ -549,7 +581,7 @@ int dof_addseq(stage_t stage, const char *src)
 {
 	const char *p = src;
 	double	last, start, step = 1.0;
-	char	buf[LINE_MAX];
+	char	buf[BUFSZ];
 
 	// get 'first'
 	p = parse_num(p, buf);
@@ -596,8 +628,8 @@ int main(int argc, char **argv)
 		else if ( (argv[i][0] == '-') && (stage != Commands) ) {
 
 			if ( argv[i][1] == '\0' ) {	// one minus, read from stdin
-				char	buf[LINE_MAX];
-				while ( fgets(buf, LINE_MAX, stdin) )
+				char	buf[BUFSZ];
+				while ( fgets(buf, BUFSZ, stdin) )
 					dof_additem(stage, buf);
 				continue; // we finished with this argv
 				}

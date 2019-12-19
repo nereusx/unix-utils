@@ -225,15 +225,66 @@ const char *parse_const(const char *src, const char *str)
 }
 
 //
-int match_regex(regex_t *r, const char *to_match)
+int rex_match(regex_t *r, const char *source)
 {
-	const char *p = to_match;
-	const int n_matches = 1;
-	regmatch_t m[n_matches];
+	if ( regexec(r, source, 0, NULL, 0) == 0 )
+		return 1;
+	return 0;
+}
 
-	int nomatch = regexec(r, p, n_matches, m, 0);
-	if ( nomatch )
-		return 0;
+//
+int res_match(const char *pattern, const char *source)
+{
+	regex_t r;
+	int status = regcomp(&r, pattern, REG_EXTENDED|REG_NEWLINE|REG_NOSUB);
+	if ( status == 0 ) {
+		status = regexec(&r, source, 0, NULL, 0);
+		regfree(&r);
+		return (status == 0);
+		}
+	return 0;
+}
+
+//
+int rex_replace(regex_t *r, char *source, const char *repl, size_t max_matches)
+{
+	size_t max_groups = 1, m, beg, end, rplen = strlen(repl);
+	regmatch_t groups[max_groups];
+	char *p = source, *buf = (char *) malloc(strlen(source) + rplen * max_matches + 1);
+	char *bp = buf;
+
+	p = source;
+	for ( m = 0; *p && m < max_matches; m ++ ) {
+		if ( regexec(r, p, max_groups, groups, 0) )
+			break;  // No more matches
+		beg = groups[0].rm_so;
+		end = groups[0].rm_eo;
+		if ( beg ) {
+			strncpy(bp, p, beg);
+			bp += beg;
+			}
+		if ( rplen ) {
+			strcpy(bp, repl);
+			bp += rplen;
+			}
+		p += end;
+		}
+	*bp = '\0';
+	strcat(bp, p);
+	strcpy(source, buf);
+	free(buf);
 	return 1;
 }
 
+//
+int res_replace(const char *pattern, char *source, const char *repl, size_t max_matches)
+{
+	regex_t r;
+	int		status;
+
+	if ( regcomp(&r, pattern, REG_EXTENDED|REG_NEWLINE) )
+		return 0;
+	status = rex_replace(&r, source, repl, max_matches);
+	regfree(&r);
+	return status;
+}

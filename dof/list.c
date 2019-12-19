@@ -130,7 +130,7 @@ void list_delrec(list_t *list, regex_t *re)
 	list_node_t	*cur = list->root, *next;
 	
 	while ( cur ) {
-		if ( match_regex(re, cur->key) ) { 
+		if ( rex_match(re, cur->key) ) {
 			next = cur->next;
 			list_remove(list, cur->key);
 			cur = next;

@@ -29,6 +29,7 @@ dof \- (do-for) executes commands for each item of a list
 	# remove all files except *.pdf and *.tex
 	dof -e * -x *.{pdf,tex} do 'rm %f'
 .EE
+.PP
 .SH OPTIONS
 .TP
 .BR \-
@@ -132,9 +133,14 @@ Replace all \fIa\fR characters with \fIb\fR.
 	# %time = 09-15-25 (t-:) 09:15:25 (ll:) 09:15
 	dof nil do %{time:t-::ll:}
 
-	# the same with date
+	# the same by using date command
 	dof "`date -R`" do '%{f:ll :rl :ll:}'
 .EE
+.TP
+.BR s\fR/\fIp\fR/\fIr\fR/[g]
+Replace regular expression match (or matches) of pattern \fIp\fR with the string \fIr\fR.
+By default only the first match will replaced; use the \fBg\fR to replace all matches.
+.PP
 \# .TP
 \# .BR %(expr)
 \# string processing expression... not used yet.
