@@ -13,6 +13,7 @@ export PATH=$(path++)
 NEWPATH=/bin:/usr/bin:/usr/local/bin:$PATH
 export PATH=$(path++ $NEWPATH)
 ```
+---
 
 * [dof man page](https://github.com/nereusx/unix-utils/blob/master/dof/dof.pdf) (do-for):
 A utility to run commands for each file/item of a list.
@@ -29,6 +30,7 @@ dof -e -s 0..15 do 'tput setaf %f; echo colour%f; tput op;'
 # remove all files except *.c and *.tex
 dof -e * -g *.{c,tex} do 'rm %f'
 ```
+---
 
 * [isonline man page](https://github.com/nereusx/unix-utils/blob/master/isonline/isonline.pdf):
 A utility to return 0 (which means OK) when the internet connection is up and running.
