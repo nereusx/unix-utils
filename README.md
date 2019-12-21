@@ -30,7 +30,7 @@ dof -e *.mp3 do ffmpeg -i "%f" "%b.ogg"
 dof -e -s 0..15 do 'tput setaf %f; echo colour%f; tput op;'
 	
 # remove all files except *.c and *.tex
-dof -e * -g *.{c,tex} do 'rm %f'
+dof -e * -x *.{c,tex} do 'rm %f'
 ```
 ---
 
