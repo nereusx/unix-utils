@@ -16,7 +16,8 @@ export PATH=$(path++ $NEWPATH)
 
 * [dof man page](https://github.com/nereusx/unix-utils/blob/master/dof/dof.pdf) (do-for):
 A utility to run commands for each file/item of a list.
-This is useful on c-shell where you cannot use one-line `foreach` statements.
+I wrote this for c-shell where you cannot use one-line `foreach` statements; but it is powerful and I use it everywhere.
+
 
 ```
 # convert all mp3s to ogg
