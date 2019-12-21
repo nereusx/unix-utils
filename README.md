@@ -19,7 +19,7 @@ export PATH=$(path++ $NEWPATH)
 
 * [dof man page](https://github.com/nereusx/unix-utils/blob/master/dof/dof.pdf) (do-for):
 A utility to run commands for each file/item of a list.
-I wrote this for c-shell where you cannot use one-line `foreach` statements; but it is powerful and I use it everywhere.
+I wrote this for C-Shell where you cannot use one-line `foreach` statements; but it is powerful with regex and you can use instead of `for`, `find` and more, even `ls`.
 
 
 ```
