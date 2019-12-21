@@ -2,6 +2,8 @@
 
 My tiny Unix utilities in C
 
+---
+
 * [path++ man page](https://github.com/nereusx/unix-utils/blob/master/pathpp/path%2B%2B.pdf):
 A utility to cleanup the path from duplicated or non-existing directories.
 
@@ -39,6 +41,7 @@ A utility to return 0 (which means OK) when the internet connection is up and ru
 $ isonline
 yes
 ```
+---
 
 ## installation
 
