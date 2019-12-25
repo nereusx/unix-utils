@@ -122,10 +122,32 @@ void list_remove(list_t *list, const char *key)
 }
 
 /*
+ * find and returns node
+ */
+list_node_t *list_find(list_t *list, const char *key)
+{
+	for ( list_node_t *cur = list->root; cur; cur = cur->next )
+		if ( strcmp(key, cur->key) == 0 )
+			return cur;
+	return NULL;
+}
+
+/*
+ * find and returns a node by using regex
+ */
+list_node_t *list_find_re(list_t *list, regex_t *re)
+{
+	for ( list_node_t *cur = list->root; cur; cur = cur->next )
+		if ( rex_match(re, cur->key) )
+			return cur;
+	return NULL;
+}
+
+/*
  * remove node from list
  * this removes regex compiled matches
  */
-void list_delrec(list_t *list, regex_t *re)
+void list_remove_re(list_t *list, regex_t *re)
 {
 	list_node_t	*cur = list->root, *next;
 	
@@ -145,25 +167,19 @@ void list_delrec(list_t *list, regex_t *re)
  */
 char *list_to_string(list_t *list, const char *delim)
 {
-	char	*ret;
-	int		len = 0, delim_len = 0, first = 1;
-	list_node_t	*cur = list->root;
+	list_node_t *cur;
+	int		count, size;
+	char	*str;
 
-	if ( delim )
-		delim_len = strlen(delim);
-	ret = (char *) malloc(1);
-	*ret = '\0';
-	while ( cur ) {
-		len += delim_len + strlen(cur->key);
-		ret = (char *) realloc(ret, len + 1);
-		if ( first )
-			first = 0;
-		else if ( delim )
-			strcat(ret, delim);
-		strcat(ret, cur->key);
-		cur = cur->next;
+	for ( cur = list->root, count = size = 0; cur; cur = cur->next, count ++ ) size += strlen(cur->key);
+	str = (char *) malloc(size + strlen(delim) * count + 1);
+	str[0] = '\0';
+	for ( cur = list->root; cur; cur = cur->next ) {
+		strcat(str, cur->key);
+		if ( cur->next )
+			strcat(str, delim);
 		}
-	return ret;
+	return str;
 }
 
 /*
@@ -176,4 +192,20 @@ void list_print(list_t *list, FILE *fp)
 		fprintf(fp, "%s: %s\n", cur->key, (char *) cur->data);
 		cur = cur->next;
 		}
+}
+
+/*
+ * convert list to a newly allocated 1D string table
+ */
+char **list_to_str1D(list_t *list)
+{
+	list_node_t *cur;
+	int	count;
+	char **table;
+
+	for ( cur = list->root, count = 0; cur; cur = cur->next ) count ++;
+	table = (char **) malloc(sizeof(char *) * count);
+	for ( cur = list->root, count = 0; cur; cur = cur->next, count ++ )
+		table[count] = cur->key;
+	return table;
 }
