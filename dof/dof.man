@@ -86,7 +86,7 @@ Adds a sequence of numbers (float or integer).
 This option can be repeated many times.
 .TP
 .BR \-l
-Print recipes (/etc/dof.conf, ~/.dof)
+Print recipes (~/.dofrc)
 .TP
 .BR \-\-\fIrecipe\fR
 Execute recipe (ex: dof --to-ogg)
