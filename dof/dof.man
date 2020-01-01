@@ -1,7 +1,7 @@
 \# exec: groff dof.1 -Tascii -man | less
 \#
 \# .TH cmd-name section [date [version [page-descr]]]
-.TH dof 1 "19 Dec 2019" "v1.11" "User Commands"
+.TH dof 1 "2 Jan 2020" "v1.11" "User Commands"
 .SH NAME
 dof \- (do-for) executes commands for each item of a list
 .SH SYNOPSIS
@@ -164,8 +164,8 @@ By default only the first match will replaced; use the \fBg\fR to replace all ma
 \# .BR %(expr)
 \# string processing expression... not used yet.
 .SH FILES
-\fBdof\fR reads '\fI/etc/dof.conf\fR' and '\fI~/.dof\fR' files.
-These files contains recipes in form 'name: parameters'.
+\fBdof\fR reads '\fI~/.dofrc\fR' file.
+This file contains recipes in form 'name: parameters'.
 These recipes can later executed with \fB--\fIname\fR option.
 .PP
 Example:
