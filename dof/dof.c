@@ -31,6 +31,12 @@
 #include <fnmatch.h>
 #include "file.h"
 
+// android termux, missing
+#ifndef LINE_MAX
+	#define LINE_MAX 4096
+#endif
+
+//
 #define BUFSZ		LINE_MAX
 
 // options - flags
