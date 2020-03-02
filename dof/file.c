@@ -26,6 +26,11 @@
 #include "str.h"
 #include "file.h"
 
+// android termux, missing
+#ifndef LINE_MAX
+	#define LINE_MAX 4096
+#endif
+
 /*
  * returns true if the "filename" has wildcards
  */
