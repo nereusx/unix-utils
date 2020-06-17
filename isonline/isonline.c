@@ -165,7 +165,8 @@ int main(int argc, char *argv[])
     struct in_addr dst;
 	int		i, rv, has_dest = 0;
 	// gnu.org = 209.51.188.148, linux.org = 104.27.167.219, ntua = 147.102.222.210
-	static char *default_address = "147.102.222.210";
+	// cloudflare abuse 1.0.0.*
+	static char *default_address = "1.0.0.1";
 
 	for ( i = 1; i < argc; i ++ ) {
 		if ( argv[i][0] == '-' ) {
