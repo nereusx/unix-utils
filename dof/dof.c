@@ -102,21 +102,35 @@ void	v_repeat(const char *arg, char *rv, const char *e)	{
 	}
 void	v_center(const char *arg, char *rv, const char *e)	{
 	const char *p = e;
-	char c = ' ';
-	int  i, n, l;
+	char c = ' ', pe[2] = { 0, 0 };
+	int  i, n = 80, l;
 
 	strcpy(rv, "");
+	if ( *p == '\0' ) {	strcpy(rv, arg); return; }
 	if ( *p == '/' )	p ++;
 	c = *p ++;
+	if ( *p == '[' ) {
+		p ++;
+		if ( *p != ']' )
+			pe[1] = pe[0] = *p ++;
+		if ( *p != ']' )
+			pe[1] = *p ++;
+		if ( *p == ']' ) p ++;
+		}
 	if ( *p == '/' )	p ++;
-	n = atoi(p);
+	if ( isdigit(*p) )
+		n = atoi(p);
 	if ( n > 0 && n < (BUFSZ-1) ) {
 		for ( i = 0; i < n; i ++ )
 			rv[i] = c;
 		rv[n] = '\0';
 		l = strlen(arg);
-		if ( l < n - 1 ) 
+		if ( l < n - 1 ) {
 			memcpy(rv + (n/2 - l/2), arg, l);
+			int pos = (n/2-l/2);
+			if ( pe[0] && pos > 0 ) rv[(n/2-l/2)-1] = pe[0];
+			if ( pe[1] && pos+l+1 < strlen(rv) ) rv[(n/2-l/2)+l] = pe[1];
+			}
 		else
 			strcpy(rv, arg);
 		}
@@ -140,7 +154,7 @@ dof_var_t dof_vars[] = {
 	{ "date", v_getdate, NULL, "the current date in the form YYYY-MM-DD" },
 	{ "time", v_gettime, NULL, "the current time in the form HH-MM-SS" },
 	{ "r",  v_repeat, NULL,		"%{r/c/times}" },
-	{ "C",  v_center, NULL,		"%{C/c/times}" },
+	{ "C",  v_center, NULL,		"%{C/c[lr]/times}" },
 	{ "q",  NULL, "'",         "single quote character (')" },
 	{ "c",  NULL, ":",         "colon character (:)" },
 	{ "dq", NULL, "\"",        "double quote character (\")" },
