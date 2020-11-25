@@ -147,6 +147,9 @@ char *expand_expr(char *dest, const char *source, const char *data)
 			p ++;
 
 			switch ( *p ) {
+			case ':':
+				strcat(buf, ":");
+				break;
 			case 'l':	// l[{f|l}]<c> the left part of first|last occurrence of 'c'
 				switch ( p[1] ) {
 				case 'f': tp = strchr (buf, p[2]); p += 3; break;
@@ -418,7 +421,7 @@ int conf_parser(char *source)
 #define APP_DESCR \
 "dof (do-for) run commands for each element of 'list'."
 
-#define APP_VER "1.11"
+#define APP_VER "1.12"
 
 static const char *usage = "\
 Usage: dof [list] [-x patterns] [do [commands]]\n\
