@@ -103,6 +103,7 @@ dof_var_t dof_vars[] = {
 	{ "date", v_getdate, NULL, "the current date in the form YYYY-MM-DD" },
 	{ "time", v_gettime, NULL, "the current time in the form HH-MM-SS" },
 	{ "q",  NULL, "'",         "single quote character (')" },
+	{ "c",  NULL, ":",         "colon character (:)" },
 	{ "dq", NULL, "\"",        "double quote character (\")" },
 	{ "bq", NULL, "`",         "backquote character (`)" },
 	{ NULL, NULL, NULL, NULL } // end-of-list
