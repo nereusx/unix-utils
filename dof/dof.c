@@ -68,26 +68,63 @@ static void **sp = stack;	// stack pointer (top)
 static int opt_unquote = 0;	// check single quotes in string
 
 // variables/functions of '%' expressions
-void	v_copyarg(const char *arg, char *rv)	{ strcpy(rv, arg); }
-void	v_gethome(const char *arg, char *rv)	{ const char *p = getenv("HOME"); strcpy(rv, (p)? p : ""); }
-void	v_basename(const char *arg, char *rv)	{ strcpy(rv, basename(arg)); }
-void	v_dirname(const char *arg, char *rv)	{ strcpy(rv, dirname(arg)); }
-void	v_extname(const char *arg, char *rv)	{ strcpy(rv, extname(arg)); }
-void	v_getcwd(const char *arg, char *rv)		{ getcwd(rv, PATH_MAX); }
-void	v_getdate(const char *arg, char *rv)	{
+void	v_copyarg(const char *arg, char *rv, const char *e)	{ strcpy(rv, arg); }
+void	v_gethome(const char *arg, char *rv, const char *e)	{ const char *p = getenv("HOME"); strcpy(rv, (p)? p : ""); }
+void	v_basename(const char *arg, char *rv, const char *e)	{ strcpy(rv, basename(arg)); }
+void	v_dirname(const char *arg, char *rv, const char *e)	{ strcpy(rv, dirname(arg)); }
+void	v_extname(const char *arg, char *rv, const char *e)	{ strcpy(rv, extname(arg)); }
+void	v_getcwd(const char *arg, char *rv, const char *e)	{ getcwd(rv, PATH_MAX); }
+void	v_getdate(const char *arg, char *rv, const char *e)	{
 	time_t now; time(&now);
 	struct tm *local = localtime(&now);
 	sprintf(rv, "%d-%02d-%02d", local->tm_year + 1900, local->tm_mon + 1, local->tm_mday);
 	}
-void	v_gettime(const char *arg, char *rv)	{
+void	v_gettime(const char *arg, char *rv, const char *e)	{
 	time_t now; time(&now);
 	struct tm *local = localtime(&now);
 	sprintf(rv, "%02d-%02d-%02d", local->tm_hour, local->tm_min, local->tm_sec);
 	}
+void	v_repeat(const char *arg, char *rv, const char *e)	{
+	const char *p = e;
+	char c = '/';
+	int  i, n;
+
+	strcpy(rv, "");
+	if ( *p == '/' )	p ++;
+	c = *p ++;
+	if ( *p == '/' )	p ++;
+	n = atoi(p);
+	if ( n > 0 && n < (BUFSZ-1) ) {
+		for ( i = 0; i < n; i ++ )
+			rv[i] = c;
+		rv[n] = '\0';
+		}
+	}
+void	v_center(const char *arg, char *rv, const char *e)	{
+	const char *p = e;
+	char c = ' ';
+	int  i, n, l;
+
+	strcpy(rv, "");
+	if ( *p == '/' )	p ++;
+	c = *p ++;
+	if ( *p == '/' )	p ++;
+	n = atoi(p);
+	if ( n > 0 && n < (BUFSZ-1) ) {
+		for ( i = 0; i < n; i ++ )
+			rv[i] = c;
+		rv[n] = '\0';
+		l = strlen(arg);
+		if ( l < n - 1 ) 
+			memcpy(rv + (n/2 - l/2), arg, l);
+		else
+			strcpy(rv, arg);
+		}
+	}
 
 typedef struct {
 	const char *name;
-	void (*func)(const char *, char *);
+	void (*func)(const char *, char *, const char *);
 	const char *value;
 	const char *desc;
 	} dof_var_t;
@@ -102,6 +139,8 @@ dof_var_t dof_vars[] = {
 	{ "cwd", v_getcwd, NULL,   "the current working directory" },
 	{ "date", v_getdate, NULL, "the current date in the form YYYY-MM-DD" },
 	{ "time", v_gettime, NULL, "the current time in the form HH-MM-SS" },
+	{ "r",  v_repeat, NULL,		"%{r/c/times}" },
+	{ "C",  v_center, NULL,		"%{C/c/times}" },
 	{ "q",  NULL, "'",         "single quote character (')" },
 	{ "c",  NULL, ":",         "colon character (:)" },
 	{ "dq", NULL, "\"",        "double quote character (\")" },
@@ -133,7 +172,7 @@ char *expand_expr(char *dest, const char *source, const char *data)
 	for ( i = 0, found = 0; dof_vars[i].name; i ++ ) {
 		if ( strcmp(dof_vars[i].name, name) == 0 ) {
 			if ( dof_vars[i].func )
-				dof_vars[i].func(data, buf);
+				dof_vars[i].func(data, buf, p);
 			else if ( dof_vars[i].value )
 				strcpy(buf, dof_vars[i].value);
 			found ++;
