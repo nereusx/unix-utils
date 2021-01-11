@@ -45,6 +45,10 @@ no
 ```
 ---
 
+* [hd man page](https://github.com/nereusx/unix-utils/blob/master/hd/hd.pdf):
+Hex-dump
+---
+
 ## installation
 
 **All:** just clone the whole directory, jump into it, and run `./install.sh`
@@ -53,8 +57,5 @@ git clone https://github.com/nereusx/unix-utils
 cd unix-utils
 ./install.sh
 ```
-
-* [hd man page](https://github.com/nereusx/unix-utils/blob/master/hd/hd.pdf):
-Hex-dump
 
 **Just one:** go to program's directory and type `make && make install`
