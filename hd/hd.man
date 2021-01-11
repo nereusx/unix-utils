@@ -9,6 +9,9 @@ hd \- dump files in hexadecimal format
 .SY hd
 .OP \-s
 .OP \-p
+.OP \-j offset
+.OP \-n bytes
+.OP \-N bytes
 .OP \-h
 .OP \-v
 .RI [ file .\|.\|.]
@@ -27,14 +30,24 @@ Prints one-line string
 .BR \-p
 Prints without spaces and characters but in lines.
 .TP
+.BR \-j \ offset
+Move to file offset first
+.TP
+.BR \-n \ BYTES
+limit dump to BYTES input bytes
+.TP
+.BR \-N \ BYTES
+same as -n, 'od' cmpt
+.TP
 .BR \-h
 Help screen
 .TP
 .BR \-v
 Program information (version, license, ...)
 \#
-\# .SH SEE ALSO
+.SH SEE ALSO
 \# command1(section), command2(section)
+od(1)
 .SH NOTES
 I should have written it 30 years ago.
 .SH AUTHOR

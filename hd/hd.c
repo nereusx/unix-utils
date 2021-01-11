@@ -27,19 +27,31 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#define MAX(a,b)	((a>b)?(a):(b))
+#define MIN(a,b)	((a<b)?(a):(b))
+
 #define OFL_NL			0x01	// new line
 #define OFL_SPC			0x02	// space after each byte
 #define OFL_CHR			0x04	// character table
 #define OFL_ADDR		0x08	// print address
+
+// output format options
 int opt_flags = OFL_NL | OFL_SPC | OFL_CHR | OFL_ADDR;
 
+// list of files
 typedef char * str_t;
 #define MAX_FLS		128
 str_t	files[MAX_FLS];
 int		fl_count = 0;
 
+// offset to start
+int		opt_start = 0;
+
+// number of bytes to print
+int		opt_len = 0;
+
 // print line
-void hexpl(int address, const char *source, int len) {
+void hexpl(unsigned int address, const char *source, int len) {
 	if ( opt_flags & OFL_ADDR )
 		printf("%08X: ", address);
 	for ( int i = 0; i < len; i ++ ) {
@@ -63,14 +75,22 @@ void hexpl(int address, const char *source, int len) {
 // print file
 void hexpf(FILE *fp) {
 	char buf[16];
-	int	n, address = 0;
-	
+	int		 n;
+	unsigned address = 0, count = 0, pf_len = 0;
+
+	if ( opt_start ) {
+		address = opt_start;
+		if ( fseek(fp, opt_start, SEEK_SET) != 0 )
+			return;
+		}
+	pf_len = (opt_len) ? opt_len : 0xffffffff;
 	do {
 		n = fread(buf, 1, 16, fp);
 		if ( n > 0 )
-			hexpl(address, buf, n);
+			hexpl(address, buf, MIN(n, pf_len - count));
 		address += n;
-		} while ( n == 16 );
+		count += n;
+		} while ( n == 16 && count < pf_len );
 	}
 
 // --- main() ---
@@ -87,6 +107,8 @@ Usage: hd [-s] [file]\n\
 Options:\n\
 \t-p\tsimple string lines\n\
 \t-s\tone-line string\n\
+\t-j BYTES\tskip BYTES input bytes first\n\
+\t-n|-N BYTES\tlimit dump to BYTES input bytes\n\
 \t-\tread from stdin\n\
 \t-h\tthis screen\n\
 \t-v\tversion and program information\n\
@@ -107,10 +129,15 @@ Written by Nicholas Christopoulos <mailto:nereus@freemail.gr>\n\
 // main()
 int main(int argc, char **argv) {
 	int		i, j;
+	int		*aiw = NULL;
 
 	// parsing arguments
 	for ( i = 1; i < argc; i ++ ) {
-		if ( argv[i][0] == '-' ) {
+		if ( aiw ) { // i am waiting an integer
+			*aiw = (int) atoi(argv[i]);
+			aiw = NULL;
+			}
+		else if ( argv[i][0] == '-' ) {
 
 			if ( argv[i][1] == '\0' ) {	// one minus, read from stdin
 				files[fl_count ++] = strdup("-");
@@ -122,6 +149,8 @@ int main(int argc, char **argv) {
 				switch ( argv[i][j] ) {
 				case 'p': opt_flags = OFL_NL; break;
 				case 's': opt_flags = 0; break;
+				case 'j': aiw = &opt_start; break;
+				case 'n': case 'N': aiw = &opt_len; break;
 				case 'h': puts(usage); return 1;
 				case 'v': puts(verss); return 1;
 				case '-': // -- double minus
