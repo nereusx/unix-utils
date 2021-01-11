@@ -76,10 +76,9 @@ void hexpl(unsigned int address, const char *source, int len) {
 void hexpf(FILE *fp) {
 	char buf[16];
 	int		 n;
-	unsigned address = 0, count = 0, pf_len = 0;
+	unsigned count = 0, pf_len = 0;
 
 	if ( opt_start ) {
-		address = opt_start;
 		if ( fseek(fp, opt_start, SEEK_SET) != 0 )
 			return;
 		}
@@ -87,8 +86,7 @@ void hexpf(FILE *fp) {
 	do {
 		n = fread(buf, 1, 16, fp);
 		if ( n > 0 )
-			hexpl(address, buf, MIN(n, pf_len - count));
-		address += n;
+			hexpl(opt_start + count, buf, MIN(n, pf_len - count));
 		count += n;
 		} while ( n == 16 && count < pf_len );
 	}
