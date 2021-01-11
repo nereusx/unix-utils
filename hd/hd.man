@@ -1,0 +1,48 @@
+\# exec: groff hd.man -Tascii -man | less
+\#
+\# .TH cmd-name section [date [version [page-descr]]]
+.TH hd 1 "11 Jan 2021" "v1.0" "User Commands"
+.SH NAME
+hd \- dump files in hexadecimal format
+.SH SYNOPSIS
+\# .SY command; .OP \-df...; .OP \-d cs; .OP \-f fam; ...; .RI [ parameter .\|.\|. ]; .YS;
+.SY hd
+.OP \-s
+.OP \-p
+.OP \-h
+.OP \-v
+.RI [ file .\|.\|.]
+.YS
+.SH DESCRIPTION
+Write an unambiguous representation, hexadecimal bytes by default, of FILE to standard output.
+With more than one FILE argument, concatenate them in the listed order to form the input.
+.PP	   
+With no FILE, or when FILE is -, read standard input.
+.PP
+.SH OPTIONS
+.TP
+.BR \-s
+Prints one-line string
+.TP
+.BR \-p
+Prints without spaces and characters but in lines.
+.TP
+.BR \-h
+Help screen
+.TP
+.BR \-v
+Program information (version, license, ...)
+\#
+\# .SH SEE ALSO
+\# command1(section), command2(section)
+.SH NOTES
+I should write it before 30 years...
+.SH AUTHOR
+.MT nereus@\:freemail.gr
+Nicholas Christopoulos
+.ME
+.br
+.UR https://github.com/nereusx/unix-utils
+Project page:
+.UE
+\# EOF

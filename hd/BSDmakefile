@@ -1,0 +1,32 @@
+#
+
+APPNAME = hd
+INSTALL = /bin
+MANDIR  = /usr/share/man/man1
+CFLAGS  = -O -Wall -Wno-unused-result -static
+CC      = gcc
+
+all: $(APPNAME)
+
+clean:
+	rm $(APPNAME) $(APPNAME).1
+
+$(APPNAME): hd.c
+	$(CC) $(CFLAGS) hd.c -o $(APPNAME)
+
+$(APPNAME).1.gz: hd.man
+	cp hd.man $(APPNAME).1
+	gzip -f $(APPNAME).1
+
+html: hd.man
+	groff hd.man -Thtml -man > $(APPNAME).html
+
+pdf: hd.man
+	groff hd.man -Tpdf -man -P -e > $(APPNAME).pdf
+
+install: $(APPNAME) $(APPNAME).1.gz
+	install -m 755 -o root -g wheel -s $(APPNAME) $(INSTALL)
+	install -m 755 -o root -g wheel $(APPNAME).1.gz $(MANDIR)
+
+uninstall:
+	rm $(INSTALL)/$(APPNAME) $(MANDIR)/$(APPNAME).1.gz

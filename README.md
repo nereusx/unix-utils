@@ -40,6 +40,8 @@ A utility to return 0 (which means OK) when the internet connection is up and ru
 ```
 $ isonline
 yes
+$ isonline www.example.com
+no
 ```
 ---
 
@@ -51,5 +53,8 @@ git clone https://github.com/nereusx/unix-utils
 cd unix-utils
 ./install.sh
 ```
+
+* [hd man page](https://github.com/nereusx/unix-utils/blob/master/hd/hd.pdf):
+Hex-dump
 
 **Just one:** go to program's directory and type `make && make install`
