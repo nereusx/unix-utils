@@ -36,7 +36,7 @@ Program information (version, license, ...)
 \# .SH SEE ALSO
 \# command1(section), command2(section)
 .SH NOTES
-I should write it before 30 years...
+I should have written it 30 years ago.
 .SH AUTHOR
 .MT nereus@\:freemail.gr
 Nicholas Christopoulos
