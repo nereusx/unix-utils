@@ -47,6 +47,13 @@ no
 
 * [hd man page](https://github.com/nereusx/unix-utils/blob/master/hd/hd.pdf):
 Hex-dump
+
+```
+$ hd hd.pdf -n 32
+hd.pdf:
+00000000: 25 50 44 46 2D 31 2E 34 0A 25 E2 E3 CF D3 0A 33       %PDF-1.4.%.....3
+00000010: 20 30 20 6F 62 6A 20 3C 3C 20 2F 43 6F 6E 74 65        0 obj << /Conte
+```
 ---
 
 ## installation
