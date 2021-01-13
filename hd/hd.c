@@ -34,6 +34,7 @@
 #define OFL_SPC			0x02	// space after each byte
 #define OFL_CHR			0x04	// character table
 #define OFL_ADDR		0x08	// print address
+#define OFL_2BIN		0x10	// binary output
 
 // output format options
 int opt_flags = OFL_NL | OFL_SPC | OFL_CHR | OFL_ADDR;
@@ -52,6 +53,24 @@ int		opt_len = 0;
 
 // print line
 void hexpl(unsigned int address, const char *source, int len) {
+	if ( opt_flags & OFL_2BIN ) {
+		// string -> binary mode
+		unsigned char b, c;
+		for ( int i = 0; i < len; i += 2 ) {
+			b = 0;
+			c = source[i];
+			if ( c >= '0' && c <= '9' )				b = c - '0';
+			else if ( c >= 'A' && c <= 'F' )		b = (c - 'A') + 10;
+			else if ( c >= 'a' && c <= 'f' )		b = (c - 'a') + 10;
+			b = b << 4;
+			c = source[i+1];
+			if ( c >= '0' && c <= '9' )				b |= c - '0';
+			else if ( c >= 'A' && c <= 'F' )		b |= (c - 'A') + 10;
+			else if ( c >= 'a' && c <= 'f' )		b |= (c - 'a') + 10;
+			printf("%c", b);
+			}
+		return;
+		}
 	if ( opt_flags & OFL_ADDR )
 		printf("%08X: ", address);
 	for ( int i = 0; i < len; i ++ ) {
@@ -107,6 +126,7 @@ Usage: hd [-s] [file]\n\
 Options:\n\
 \t-p\tsimple string lines\n\
 \t-s\tone-line string\n\
+\t-b\tone-line string to binary\n\
 \t-j BYTES\tskip BYTES input bytes first\n\
 \t-n|-N BYTES\tlimit dump to BYTES input bytes\n\
 \t-\tread from stdin\n\
@@ -149,6 +169,7 @@ int main(int argc, char **argv) {
 				switch ( argv[i][j] ) {
 				case 'p': opt_flags = OFL_NL; break;
 				case 's': opt_flags = 0; break;
+				case 'b': opt_flags = OFL_2BIN; break;
 				case 'j': aiw = &opt_start; break;
 				case 'n': case 'N': aiw = &opt_len; break;
 				case 'h': puts(usage); return 1;
@@ -176,7 +197,8 @@ int main(int argc, char **argv) {
 		if ( files[i][0] == '-' )
 			hexpf(stdin);
 		else if ( access(files[i], R_OK) == 0 ) {
-			printf("%s:\n", files[i]);
+			if ( opt_flags & OFL_ADDR )
+				printf("%s:\n", files[i]);
 			FILE *fp = fopen(files[i], "rb");
 			if ( fp ) {
 				hexpf(fp);

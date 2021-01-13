@@ -8,6 +8,7 @@ hd \- dump files in hexadecimal format
 \# .SY command; .OP \-df...; .OP \-d cs; .OP \-f fam; ...; .RI [ parameter .\|.\|. ]; .YS;
 .SY hd
 .OP \-s
+.OP \-b
 .OP \-p
 .OP \-j offset
 .OP \-n bytes
@@ -26,6 +27,9 @@ With no FILE, or when FILE is -, read standard input.
 .TP
 .BR \-s
 Prints one-line string
+.TP
+.BR \-b
+Prints the binary of one-line string hex dump. ('hd -s /bin/sh | hd -b > copy-of-sh')
 .TP
 .BR \-p
 Prints without spaces and characters but in lines.
