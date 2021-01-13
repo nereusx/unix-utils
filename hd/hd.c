@@ -60,6 +60,8 @@ void hexpl(unsigned int address, const char *source, int len) {
 			printf(" ");
 		}
 	if ( opt_flags & OFL_CHR ) {
+		for ( int i = len; i < 16; i ++ )
+			printf("   ");
 		printf("\t");
 		for ( int j = 0; j < len; j ++ ) {
 			if ( isprint(source[j]) )
