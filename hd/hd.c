@@ -135,7 +135,7 @@ Options:\n\
 ";
 
 static const char *verss = "\
-dof version "APP_VER"\n\
+hd version "APP_VER"\n\
 "APP_DESCR"\n\
 \n\
 Copyright (C) 2017-2020 Free Software Foundation, Inc.\n\
