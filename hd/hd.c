@@ -51,6 +51,9 @@ int		opt_start = 0;
 // number of bytes to print
 int		opt_len = 0;
 
+// number of bytes per line
+int		opt_width = 16;
+
 // print line
 void hexpl(unsigned int address, const char *source, int len) {
 	if ( opt_flags & OFL_2BIN ) {
@@ -79,7 +82,7 @@ void hexpl(unsigned int address, const char *source, int len) {
 			printf(" ");
 		}
 	if ( opt_flags & OFL_CHR ) {
-		for ( int i = len; i < 16; i ++ )
+		for ( int i = len; i < opt_width; i ++ )
 			printf("   ");
 		printf("\t");
 		for ( int j = 0; j < len; j ++ ) {
@@ -95,7 +98,7 @@ void hexpl(unsigned int address, const char *source, int len) {
 
 // print file
 void hexpf(FILE *fp) {
-	char buf[16];
+	char buf[512];
 	int		 n;
 	unsigned count = 0, pf_len = 0;
 
@@ -105,11 +108,11 @@ void hexpf(FILE *fp) {
 		}
 	pf_len = (opt_len) ? opt_len : 0xffffffff;
 	do {
-		n = fread(buf, 1, 16, fp);
+		n = fread(buf, 1, opt_width, fp);
 		if ( n > 0 )
 			hexpl(opt_start + count, buf, MIN(n, pf_len - count));
 		count += n;
-		} while ( n == 16 && count < pf_len );
+		} while ( n == opt_width && count < pf_len );
 	}
 
 // --- main() ---
@@ -117,7 +120,7 @@ void hexpf(FILE *fp) {
 #define APP_DESCR \
 "hd (hex-dump) dump files in hexadecimal format."
 
-#define APP_VER "1.0"
+#define APP_VER "1.1"
 
 static const char *usage = "\
 Usage: hd [-s] [file]\n\
@@ -129,6 +132,7 @@ Options:\n\
 \t-b\tone-line string to binary\n\
 \t-j BYTES\tskip BYTES input bytes first\n\
 \t-n|-N BYTES\tlimit dump to BYTES input bytes\n\
+\t-w N\t(width) number of bytes per line\n\
 \t-\tread from stdin\n\
 \t-h\tthis screen\n\
 \t-v\tversion and program information\n\
@@ -172,6 +176,7 @@ int main(int argc, char **argv) {
 				case 'b': opt_flags = OFL_2BIN; break;
 				case 'j': aiw = &opt_start; break;
 				case 'n': case 'N': aiw = &opt_len; break;
+				case 'w': aiw = &opt_width; break;
 				case 'h': puts(usage); return 1;
 				case 'v': puts(verss); return 1;
 				case '-': // -- double minus

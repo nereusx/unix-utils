@@ -13,6 +13,7 @@ hd \- dump files in hexadecimal format
 .OP \-j offset
 .OP \-n bytes
 .OP \-N bytes
+.OP \-w bytes
 .OP \-h
 .OP \-v
 .RI [ file .\|.\|.]
@@ -42,6 +43,9 @@ limit dump to BYTES input bytes
 .TP
 .BR \-N \ BYTES
 same as -n, 'od' cmpt
+.TP
+.BR \-w \ BYTES
+number of bytes to display per line
 .TP
 .BR \-h
 Help screen
