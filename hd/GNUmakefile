@@ -26,7 +26,7 @@ pdf: hd.man
 
 install: $(APPNAME) $(APPNAME).1.gz
 	install -m 755 -o root -g root -s $(APPNAME) $(INSTALL)
-	install -m 755 -o root -g root $(APPNAME).1.gz $(MANDIR)
+	install -m 644 -o root -g root $(APPNAME).1.gz $(MANDIR)
 
 uninstall:
 	rm $(INSTALL)/$(APPNAME) $(MANDIR)/$(APPNAME).1.gz

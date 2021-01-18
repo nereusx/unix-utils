@@ -21,8 +21,8 @@ pdf: isonline.man
 	groff isonline.man -Tpdf -man -P -e > isonline.pdf
 
 install: isonline isonline.1.gz
-	install -m 755 -o root -g root isonline /usr/local/bin
-	install -m 755 -o root -g root isonline.1.gz $(MANDIR)/man1
+	install -m 755 -o root -g root isonline /usr/local/bin/
+	install -m 644 -o root -g root isonline.1.gz $(MANDIR)/man1/
 
 uninstall:
 	-@rm /usr/local/bin/isonline $(MANDIR)/man1/isonline.1.gz

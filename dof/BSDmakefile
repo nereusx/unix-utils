@@ -22,7 +22,7 @@ clean:
 
 install: dof dof.1.gz
 	install -m 755 -o root -g wheel -s dof $(INSTALL)
-	install -m 755 -o root -g wheel dof.1.gz $(MANDIR)
+	install -m 644 -o root -g wheel dof.1.gz $(MANDIR)
 
 uninstall:
 	rm $(INSTALL)/dof $(MANDIR)/dof.1.gz

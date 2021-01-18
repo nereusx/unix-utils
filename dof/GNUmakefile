@@ -24,7 +24,7 @@ pdf: dof.man
 
 install: dof dof.1.gz
 	install -m 755 -o root -g root -s dof $(INSTALL)
-	install -m 755 -o root -g root dof.1.gz $(MANDIR)
+	install -m 644 -o root -g root dof.1.gz $(MANDIR)
 
 uninstall:
 	-@rm $(INSTALL)/dof $(MANDIR)/dof.1.gz
