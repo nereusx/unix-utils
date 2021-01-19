@@ -35,7 +35,8 @@ Prints the binary of one-line string hex dump.
 .EX
 % hd -s /bin/sh | hd -b > copy-of-sh
 % hd -p /bin/sh | tr -d '\\n' | hd -b > copy-of-sh
-% hd /bin/sh | awk 'BEGIN{FS=":"}{print $2}' | tr -d '\\ \\n' | hd -b > copy-of-sh
+% hd /bin/sh | awk 'BEGIN{FS=":"}{print $2}' /
+	| tr -d '\\ \\n' | hd -b > copy-of-sh
 .EE
 
 .TP
