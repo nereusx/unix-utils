@@ -30,7 +30,12 @@ With no FILE, or when FILE is -, read standard input.
 Prints one-line string
 .TP
 .BR \-b
-Prints the binary of one-line string hex dump. ('hd -s /bin/sh | hd -b > copy-of-sh')
+Prints the binary of one-line string hex dump.
+
+.EX
+% hd -s /bin/sh | hd -b > copy-of-sh
+% hd -p /bin/sh | tr -d '\\n' | hd -b > copy-of-sh
+.EE
 .TP
 .BR \-p
 Prints without spaces and characters but in lines.
