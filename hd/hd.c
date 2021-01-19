@@ -84,7 +84,7 @@ void hexpl(unsigned int address, const char *source, int len) {
 	if ( opt_flags & OFL_CHR ) {
 		for ( int i = len; i < opt_width; i ++ )
 			printf("   ");
-		printf("\t");
+		printf("  ");
 		for ( int j = 0; j < len; j ++ ) {
 			if ( isprint(source[j]) )
 				printf("%c", source[j] & 0xFF);
