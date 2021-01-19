@@ -62,10 +62,6 @@ void hexpl(unsigned int address, const char *source, int len) {
 		for ( int i = 0; i < len; i += 2 ) {
 			b = 0;
 			c = source[i];
-			if ( c == '\n' ) {
-				i ++; len ++;
-				c = source[i];
-				}
 			if ( c >= '0' && c <= '9' )				b = c - '0';
 			else if ( c >= 'A' && c <= 'F' )		b = (c - 'A') + 10;
 			else if ( c >= 'a' && c <= 'f' )		b = (c - 'a') + 10;
