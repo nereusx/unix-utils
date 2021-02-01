@@ -6,7 +6,7 @@
  *	This program was created because of the lack of one-line foreach of
  *	tcsh.
  * 
- *	Copyright (C) 2017-2020 Free Software Foundation, Inc.
+ *	Copyright (C) 2017-2021 Nicholas Christopoulos.
  *
  *	This is free software: you can redistribute it and/or modify it under
  *	the terms of the GNU General Public License as published by the

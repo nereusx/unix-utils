@@ -1,7 +1,7 @@
 \# exec: groff dof.1 -Tascii -man | less
 \#
 \# .TH cmd-name section [date [version [page-descr]]]
-.TH dof 1 "2 Jan 2020" "v1.11" "User Commands"
+.TH dof 1 "2 Jan 2020" "NDC Tools Collection" "User Commands"
 .SH NAME
 dof \- (do-for) executes commands for each item of a list
 .SH SYNOPSIS
@@ -190,7 +190,7 @@ Nicholas Christopoulos
 Project page:
 .UE
 .SH COPYRIGHT
-Copyright © 2020 Nicholas Christopoulos.
+Copyright © 2020, 2021 Nicholas Christopoulos.
 .br
 License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
 .br

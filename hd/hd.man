@@ -1,7 +1,7 @@
 \# exec: groff hd.man -Tascii -man | less
 \#
 \# .TH cmd-name section [date [version [page-descr]]]
-.TH hd 1 "11 Jan 2021" "v1.0" "User Commands"
+.TH hd 1 "11 Jan 2021" "NDC Tools Collection" "User Commands"
 .SH NAME
 hd \- dump files in hexadecimal format
 .SH SYNOPSIS
@@ -75,7 +75,7 @@ Nicholas Christopoulos
 Project page:
 .UE
 .SH COPYRIGHT
-Copyright © 2020 Nicholas Christopoulos.
+Copyright © 2020, 2021 Nicholas Christopoulos.
 .br
 License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
 .br

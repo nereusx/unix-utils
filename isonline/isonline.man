@@ -1,7 +1,7 @@
 \# exec: groff isonline.man -Tascii -man | less
 \#
 \# .TH cmd-name section [date [version [page-descr]]]
-.TH isonline 1 "22 Nov 2019" "v1.0" "User Commands"
+.TH isonline 1 "22 Nov 2019" "NDC Tools Collection" "User Commands"
 .SH NAME
 isonline \- returns the internet connection status
 .SH SYNOPSIS
@@ -42,7 +42,7 @@ Nicholas Christopoulos
 Project page:
 .UE
 .SH COPYRIGHT
-Copyright © 2020 Nicholas Christopoulos.
+Copyright © 2020, 2021 Nicholas Christopoulos.
 .br
 License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
 .br
