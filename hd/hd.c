@@ -130,7 +130,7 @@ Options:\n\
 \t-p\tsimple string lines\n\
 \t-s\tone-line string\n\
 \t-b\tone-line string to binary\n\
-\t-j offset\tmove to offset position first\n\
+\t-j offset\tmove to offset\n\
 \t-n|-N BYTES\tlimit dump to BYTES input bytes\n\
 \t-w N\t(width) number of bytes per line\n\
 \t-\tread from stdin\n\
