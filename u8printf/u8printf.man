@@ -1,0 +1,45 @@
+\# exec: groff u8printf.man -Tascii -man | less
+\#
+\# .TH cmd-name section [date [version [page-descr]]]
+.TH u8printf 1 "5 Mar 2021" "NDC Tools Collection" "User Commands"
+.SH NAME
+u8printf \- printf with support of utf8
+.SH SYNOPSIS
+\# .SY command; .OP \-df...; .OP \-d cs; .OP \-f fam; ...; .RI [ parameter .\|.\|. ]; .YS;
+.SY u8printf
+.OP \-h
+.OP \-v
+.RI fmt
+.RI ...
+.YS
+.SH DESCRIPTION
+Same as printf(3). '%c' not supported yet.
+.PP
+.SH OPTIONS
+.TP
+.BR \-h
+Help screen
+.TP
+.BR \-v
+Program information (version, license, ...)
+\#
+\# .SH SEE ALSO
+\# command1(section), command2(section)
+.SH AUTHOR
+.MT nereus@\:freemail.gr
+Nicholas Christopoulos
+.ME
+.br
+.UR https://github.com/nereusx/unix-utils
+Project page:
+.UE
+.SH COPYRIGHT
+Copyright © 2020, 2021 Nicholas Christopoulos.
+.br
+License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+.br
+This is free software: you are free to change and redistribute it.
+.br
+There is NO WARRANTY, to the extent permitted by law.
+\# EOF
+
