@@ -114,15 +114,14 @@ void uprint(const char *stype, const char *width, const char *text) {
 			int l = atoi(width);
 			int w = wcswidth(wcs, wcslen(wcs));
 			if ( l ) {
-				int i;
 				if ( l < 0 ) {
-					for ( i = 0; i < -l-w; i ++ )
+					for ( int i = 0; i < -l-w; i ++ )
 						printf(" ");
 					printf("%ls", wcs);
 					}
 				else{
 					printf("%ls", wcs);
-					for ( i = 0; i < l-w; i ++ )
+					for ( int i = 0; i < l-w; i ++ )
 						printf(" ");
 					}
 				}
