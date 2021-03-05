@@ -141,7 +141,11 @@ void uprint(const char *stype, const char *width, const char *text) {
 static const char *usage = "\
 Usage: u8printf format ...\n\
 \n"APP_DESCR"\n\
-";
+\n\
+use 'man 3 printf' for details.\n\
+\n\
+-h this screen\n\
+-v the version\n";
 
 static const char *verss = "\
 path++ version "APP_VER"\n\
