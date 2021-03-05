@@ -20,6 +20,7 @@
  * 	
  */
 
+#define _XOPEN_SOURCE
 #include <wchar.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -109,10 +110,24 @@ void uprint(const char *stype, const char *width, const char *text) {
 			}
 		break;
 	case 's': {
-			if ( stype[0] != 'l' )
-				sprintf(fmt, "%%%sls", width);
 			wchar_t	*wcs = u8towcs(text);
-			printf(fmt, wcs);
+			int l = atoi(width);
+			int w = wcswidth(wcs, wcslen(wcs));
+			if ( l ) {
+				int i;
+				if ( l < 0 ) {
+					for ( i = 0; i < -l-w; i ++ )
+						printf(" ");
+					printf("%ls", wcs);
+					}
+				else{
+					printf("%ls", wcs);
+					for ( i = 0; i < l-w; i ++ )
+						printf(" ");
+					}
+				}
+			else
+				printf("%ls", wcs);
 			free(wcs);
 			}
 		break;
